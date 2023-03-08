@@ -220,13 +220,14 @@ bool ray_cylinder_intersection(
 
 	vec3 intersection_point;
 	t = MAX_RANGE + 10.;
+	vec3 cylinder_axis = normalize(cyl.axis);
 
-    float dx = ray_origin.x - cyl.center.x;
-    float dy = ray_origin.y - cyl.center.y;
-    
-    float a = ray_direction.x * ray_direction.x + ray_direction.y * ray_direction.y;
-    float b = 2. * dx * ray_direction.x + 2. * dy * ray_direction.y;
-    float c = dx * dx + dy * dy - cyl.radius * cyl.radius;
+	vec3 d = ray_direction - dot(ray_direction, cylinder_axis) * cylinder_axis;
+	vec3 o = ray_origin - cyl.center;
+
+	float a = dot(d, d);
+	float b = 2.0 * dot(d, o - dot(o, cylinder_axis) * cylinder_axis);
+	float c = dot(o - dot(o, cylinder_axis) * cylinder_axis, o - dot(o, cylinder_axis) * cylinder_axis) - cyl.radius * cyl.radius;
 
     vec2 solutions;
 
@@ -243,7 +244,9 @@ bool ray_cylinder_intersection(
         solutions[0] = temp;
     }
 
-    if (solutions[0] > 0. && ray_origin.z + solutions[0] * ray_direction.z <= cyl.center.z + cyl.height / 2. && ray_origin.z + solutions[0] * ray_direction.z >= cyl.center.z - cyl.height / 2. )
+
+	if (solutions[0] > 0. && ray_origin.z + solutions[0] * ray_direction.z <= cyl.center.z + cyl.height / 2.
+	&& ray_origin.z + solutions[0] * ray_direction.z >= cyl.center.z - cyl.height / 2. )
     {
         t = solutions[0];
     }
