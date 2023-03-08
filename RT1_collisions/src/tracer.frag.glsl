@@ -184,21 +184,20 @@ bool ray_plane_intersection(
 	// can use the plane center if you need it
 	vec3 plane_center = plane_normal * plane_offset;
 	t = MAX_RANGE + 10.;
-	
-	float direction = dot(plane_normal,ray_direction);
-	vec3 distance = plane_center-ray_origin;
-	float numerator = dot( plane_normal, distance);
-	t = numerator/direction;
+
+	float direction = dot(ray_direction, plane_normal);
+	vec3 distance = plane_center - ray_origin;
+	float numerator = dot(distance, plane_normal);
+	t = numerator / direction;
     
 	if (t >= 0.0) {
 		float x = 1.0;     
 		if (direction >= 0.0) {
 			x = -1.0;
 		}
-		normal = x*plane_normal;
+		normal = x * plane_normal;
 		return true;
 	}
-	return false;
 	return false;
 }
 
@@ -222,7 +221,44 @@ bool ray_cylinder_intersection(
 	vec3 intersection_point;
 	t = MAX_RANGE + 10.;
 
-	return false;
+    float dx = ray_origin.x - cyl.center.x;
+    float dy = ray_origin.y - cyl.center.y;
+    
+    float a = ray_direction.x * ray_direction.x + ray_direction.y * ray_direction.y;
+    float b = 2. * dx * ray_direction.x + 2. * dy * ray_direction.y;
+    float c = dx * dx + dy * dy - cyl.radius * cyl.radius;
+
+    vec2 solutions;
+
+    int num_solutions = solve_quadratic(a, b, c, solutions);
+
+    if (num_solutions <= 0)
+    {
+        return false;
+    }
+
+    if (solutions[1] < solutions[0]) {
+        float temp = solutions[1];
+        solutions[1] = solutions[0];
+        solutions[0] = temp;
+    }
+
+    if (solutions[0] > 0. && ray_origin.z + solutions[0] * ray_direction.z <= cyl.center.z + cyl.height / 2. && ray_origin.z + solutions[0] * ray_direction.z >= cyl.center.z - cyl.height / 2. )
+    {
+        t = solutions[0];
+    }
+    else if (num_solutions > 1 && solutions[1] > 0. && ray_origin.z + solutions[1] * ray_direction.z <= cyl.center.z + cyl.height / 2. && ray_origin.z + solutions[1] * ray_direction.z >= cyl.center.z - cyl.height / 2. )
+    {
+        t = solutions[1];
+    }
+    else {
+        return false;
+    }
+
+    intersection_point = ray_origin + ray_direction * t;
+	normal = (intersection_point - cyl.center) / cyl.radius;
+
+	return true;
 }
 
 
