@@ -224,16 +224,20 @@ bool ray_cylinder_intersection(
 
 	vec3 intersection_point;
 	t = MAX_RANGE + 10.;
-
-    float dx = ray_origin.x - cyl.center.x;
-    float dy = ray_origin.y - cyl.center.y;
     
     vec3 d = ray_direction - dot(ray_direction, cylinder_axis) * cylinder_axis;
-	vec3 o = ray_origin - cyl.center;
+	vec3 q = ray_origin - cyl.center;
+	vec3 ax = cylinder_axis;
 
-	float a = dot(d, d);
-	float b = 2.0 * dot(d, o - dot(o, cylinder_axis) * cylinder_axis);
-	float c = dot(o - dot(o, cylinder_axis) * cylinder_axis, o - dot(o, cylinder_axis) * cylinder_axis) - cyl.radius * cyl.radius;
+	// vec3 daa = dot(d,ax)*ax;
+	// vec3 qaa = dot(q,ax)*ax;
+
+	// float a = dot(d,d) - 2.*dot(daa,d) + dot(daa,daa);
+	// float b = 2.*dot(d,q) - 2.*dot(qaa,d) - 2.*dot(daa,q) + 2.*dot(daa,qaa);
+	// float c = dot(q,q) - 2.*dot(qaa,q) + dot(qaa,qaa);
+	float a = dot(d,d);
+	float b = 2.0 * dot(d, q - dot(q, cylinder_axis) * cylinder_axis);
+	float c = dot(q - dot(q, cylinder_axis) * cylinder_axis, q - dot(q, cylinder_axis) * cylinder_axis) - cyl.radius * cyl.radius;
 
     vec2 solutions;
 
@@ -243,18 +247,22 @@ bool ray_cylinder_intersection(
     {
         return false;
     }
-
-    if (solutions[1] < solutions[0]) {
+	if (num_solutions <= 1)
+    {
+		t = solutions[0];
+    }else if (solutions[1] < solutions[0]) {
         float temp = solutions[1];
         solutions[1] = solutions[0];
         solutions[0] = temp;
     }
 
-    if (solutions[0] > 0. && length(ray_origin + solutions[0] * r_ray_direction - cyl.center) < cyl.height / 2. + .2)
+    if (solutions[0] > 0. && dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax) < cyl.height / 2.
+	&& dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax) > -cyl.height / 2.)
     {
         t = solutions[0];
     }
-    else if (num_solutions > 1 && solutions[1] > 0. && length(ray_origin + solutions[1] * r_ray_direction - cyl.center) < cyl.height / 2. + .2)
+    else if (num_solutions > 1 && dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax) < cyl.height / 2.
+	&& dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax) > -cyl.height / 2.)
     {
         t = solutions[1];
     }
@@ -263,7 +271,7 @@ bool ray_cylinder_intersection(
     }
 
     intersection_point = ray_origin + r_ray_direction * t;
-	normal = (intersection_point - cyl.center) / cyl.radius;
+	normal = (intersection_point - (((intersection_point-cyl.center)*cylinder_axis)+cyl.center)) / cyl.radius;
 
 	return true;
 }
