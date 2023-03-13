@@ -227,15 +227,13 @@ bool ray_cylinder_intersection(
 	vec3 intersection_point;
 	t = MAX_RANGE + 10.;
 
-    float dx = ray_origin.x - cyl.center.x;
-    float dy = ray_origin.y - cyl.center.y;
-    
     vec3 d = ray_direction - dot(ray_direction, cyl.axis) * cyl.axis;
-	vec3 o = ray_origin - cyl.center;
+	vec3 q = ray_origin - cyl.center;
+	vec3 ax = cylinder_axis;
 
-	float a = dot(d, d);
-	float b = 2.0 * dot(d, o - dot(o, cyl.axis) * cyl.axis);
-	float c = dot(o - dot(o, cyl.axis) * cyl.axis, o - dot(o, cyl.axis) * cyl.axis) - cyl.radius * cyl.radius;
+	float a = dot(d,d);
+	float b = 2.0 * dot(d, q - dot(q, cylinder_axis) * cylinder_axis);
+	float c = dot(q - dot(q, cylinder_axis) * cylinder_axis, q - dot(q, cylinder_axis) * cylinder_axis) - cyl.radius * cyl.radius;
 
     vec2 solutions;
 
@@ -244,9 +242,10 @@ bool ray_cylinder_intersection(
     if (num_solutions <= 0)
     {
         return false;
-    }
-
-    if (solutions[1] < solutions[0]) {
+    } else if (num_solutions <= 1)
+    {
+		t = solutions[0];
+    }else if (solutions[1] < solutions[0]) {
         float temp = solutions[1];
         solutions[1] = solutions[0];
         solutions[0] = temp;
@@ -453,12 +452,12 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 		
 		Material m = get_material(mat_id);
 
-		pix_color = light_color_ambient*m.ambient* // LIGHTING;
+		pix_color = light_color_ambient*m.ambient // LIGHTING;
 
 		#if NUM_LIGHTS != 0
-		// for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
-		// // do something for each light lights[i_light]
-		// }
+		for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
+		// do something for each light lights[i_light]
+		}
 		#endif
 	}
 
