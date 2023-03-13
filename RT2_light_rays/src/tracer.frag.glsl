@@ -368,40 +368,42 @@ vec3 lighting(
 
 	You can use existing methods for `vec3` objects such as `mirror`, `reflect`, `norm`, `dot`, and `normalize`.
 	*/
-	 
-    vec3 n = normalize(object_normal);
-	vec3 l = (normalize(light.position-object_point));
-	float diff_component = mat.diffuse * dot(n,l);
-	
-	if (dot(n,l) < 0.) {
-		diff_component = 0.;
-	} 
-
-	vec3 r = normalize(2. * n * dot(n,l) - l);
-
-	
-	float spec_component = mat.specular * (pow(dot(r,normalize(direction_to_camera)), mat.shininess));
-	
-	if (dot(r,normalize(direction_to_camera)) < 0.) {
-		spec_component = 0.;
-	}
-	
-
 
 	/** #TODO RT2.2: 
 	- shoot a shadow ray from the intersection point to the light
 	- check whether it intersects an object from the scene
 	- update the lighting accordingly
 	*/
+	 
+    vec3 n = normalize(object_normal);
+	vec3 l = normalize(light.position - object_point);
+	vec3 r = normalize(2. * n * dot(n, l) - l);
+    vec3 v = normalize(direction_to_camera);
+    vec3 h = normalize(v + l);
 
+	float diff_component = mat.diffuse * dot(n, l);
+	
+	if (dot(n, l) < 0.) {
+		diff_component = 0.;
+	} 
+
+    float spec_component = 0.;
 
 	#if SHADING_MODE == SHADING_MODE_PHONG
+	spec_component = mat.specular * pow(dot(r, v), mat.shininess);
+	if (dot(r, v) < 0.) {
+		spec_component = 0.;
+	}   
 	#endif
 
 	#if SHADING_MODE == SHADING_MODE_BLINN_PHONG
-	#endif
+	spec_component = mat.specular * pow(dot(h, n), mat.shininess);
+	if (dot(h, n) < 0.) {
+		spec_component = 0.;
+	}   
+	#endif 
 
-	return light.color*(diff_component+spec_component);
+	return mat.color * light.color * (diff_component + spec_component);
 }
 
 /*
@@ -447,7 +449,7 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 	vec3 col_normal = vec3(0.);
 	int mat_id = 0;
 
-	if(ray_intersection(ray_origin, ray_direction, col_distance, col_normal, mat_id)) {
+	if (ray_intersection(ray_origin, ray_direction, col_distance, col_normal, mat_id)) {
 		
 		Material m = get_material(mat_id);
 
