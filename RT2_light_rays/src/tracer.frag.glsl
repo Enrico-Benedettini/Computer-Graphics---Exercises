@@ -273,7 +273,6 @@ bool ray_cylinder_intersection(
 }
 
 
-
 /*
 	Check for intersection of the ray with any object in the scene.
 */
@@ -448,15 +447,16 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 	float col_distance;
 	vec3 col_normal = vec3(0.);
 	int mat_id = 0;
+
 	if(ray_intersection(ray_origin, ray_direction, col_distance, col_normal, mat_id)) {
 		
 		Material m = get_material(mat_id);
 
-		pix_color = light_color_ambient*m.ambient // LIGHTING;
+		pix_color = light_color_ambient*m.ambient; // LIGHTING;
 
 		#if NUM_LIGHTS != 0
 		for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
-		// do something for each light lights[i_light]
+            pix_color += lighting(ray_origin + ray_direction * col_distance, col_normal, -ray_origin, lights[i_light], m); 
 		}
 		#endif
 	}
