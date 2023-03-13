@@ -252,13 +252,11 @@ bool ray_cylinder_intersection(
     }
 
 
-    if (solutions[0] > 0. && dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax) < cyl.height / 2.
-	&& dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax) > -cyl.height / 2.)
+    if (solutions[0] > 0. && abs(dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax)) < cyl.height / 2.)
     {
         t = solutions[0];
     }
-    else if (num_solutions > 1 && dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax) < cyl.height / 2.
-	&& dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax) > -cyl.height / 2.)
+    else if (num_solutions > 1 && abs(dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax)) < cyl.height / 2.)
     {
         t = solutions[1];
     }
@@ -267,7 +265,7 @@ bool ray_cylinder_intersection(
     }
 
     intersection_point = ray_origin + r_ray_direction * t;
-	normal = (intersection_point - (((intersection_point-cyl.center)*cyl.axis)+cyl.center)) / cyl.radius;
+	normal = normalize(intersection_point - cyl.center - dot(intersection_point - cyl.center, cylinder_axis) * cylinder_axis);
 
 	return true;
 }
@@ -381,6 +379,15 @@ vec3 lighting(
     vec3 v = normalize(direction_to_camera);
     vec3 h = normalize(v + l);
 
+    const float ACNE_REDUCER = 0.0001;
+
+    float col_dist;
+    vec3 col_norm;
+    int mat_id;
+    if (ray_intersection(object_point + v * ACNE_REDUCER, l, col_dist, col_norm, mat_id) && col_dist > ACNE_REDUCER) {
+        return vec3(0.);
+    }
+
 	float diff_component = mat.diffuse * dot(n, l);
 	
 	if (dot(n, l) < 0.) {
@@ -444,23 +451,46 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 	*/
 
 	vec3 pix_color = vec3(0.);
+    float reflection_weight = 1.;
 
-	float col_distance;
-	vec3 col_normal = vec3(0.);
-	int mat_id = 0;
+    const float ACNE_REDUCER = 0.01;
 
-	if (ray_intersection(ray_origin, ray_direction, col_distance, col_normal, mat_id)) {
-		
-		Material m = get_material(mat_id);
+    for (int i_reflection = 0; i_reflection < NUM_REFLECTIONS + 1; i_reflection++) {
+	    float col_distance;
+	    vec3 col_normal = vec3(0.);
+	    int mat_id = 0;
 
-		pix_color = light_color_ambient * m.ambient; // LIGHTING;
+	    if (!ray_intersection(ray_origin + ray_direction * ACNE_REDUCER, ray_direction, col_distance, col_normal, mat_id)) {
+            break;
+	    }
 
-		#if NUM_LIGHTS != 0
-		for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
-            pix_color += lighting(ray_origin + ray_direction * col_distance, col_normal, -ray_direction, lights[i_light], m); 
-		}
-		#endif
-	}
+        vec3 ray_hit = ray_origin + ray_direction * col_distance;
+
+        Material m = get_material(mat_id);
+
+        float mirror = m.mirror;
+
+        if (i_reflection == NUM_REFLECTIONS) {
+            mirror = 0.;
+        }
+
+        pix_color += reflection_weight * (1. - mirror) * light_color_ambient * m.ambient * m.color;
+
+        #if NUM_LIGHTS != 0
+        for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
+            vec3 light = lighting(ray_hit, col_normal, -ray_direction, lights[i_light], m); 
+            pix_color += reflection_weight * (1. - mirror) * light;
+        }
+        #endif
+        
+        ray_origin = ray_hit;
+        ray_direction = normalize(2. * col_normal * dot(col_normal, -ray_direction) + ray_direction);
+        reflection_weight *= mirror;
+
+        if (reflection_weight == 0.) {
+            break;
+        }
+    }
 
 	return pix_color;
 }
