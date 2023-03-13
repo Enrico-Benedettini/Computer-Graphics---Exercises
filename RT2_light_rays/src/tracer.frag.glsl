@@ -369,22 +369,21 @@ vec3 lighting(
 	You can use existing methods for `vec3` objects such as `mirror`, `reflect`, `norm`, `dot`, and `normalize`.
 	*/
 	 
+    vec3 n = normalize(object_normal);
 	vec3 l = (normalize(light.position-object_point));
-	float diff_component = mat.diffuse*(dot(normalize(object_normal),l));
+	float diff_component = mat.diffuse * dot(n,l);
 	
-	float x = 1.;
-	float y = 1.;
-	if (dot(normalize(object_normal),l) < 0.) {
-		x = 0.;
+	if (dot(n,l) < 0.) {
+		diff_component = 0.;
 	} 
 
-	vec3 r = normalize(2.*normalize(object_normal)*(dot(normalize(object_normal),l))-l);
+	vec3 r = normalize(2. * n * dot(n,l) - l);
 
 	
-	float spec_component = mat.specular*(pow(dot(r,normalize(direction_to_camera)), mat.shininess));
+	float spec_component = mat.specular * (pow(dot(r,normalize(direction_to_camera)), mat.shininess));
 	
 	if (dot(r,normalize(direction_to_camera)) < 0.) {
-		y = 0.;
+		spec_component = 0.;
 	}
 	
 
@@ -402,7 +401,7 @@ vec3 lighting(
 	#if SHADING_MODE == SHADING_MODE_BLINN_PHONG
 	#endif
 
-	return light.color*(x*diff_component+y*spec_component);
+	return light.color*(diff_component+spec_component);
 }
 
 /*
@@ -452,7 +451,7 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 		
 		Material m = get_material(mat_id);
 
-		pix_color = light_color_ambient*m.ambient; // LIGHTING;
+		pix_color = light_color_ambient * m.ambient; // LIGHTING;
 
 		#if NUM_LIGHTS != 0
 		for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
