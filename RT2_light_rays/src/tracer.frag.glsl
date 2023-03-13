@@ -252,11 +252,14 @@ bool ray_cylinder_intersection(
         solutions[0] = temp;
     }
 
-    if (solutions[0] > 0. && length(ray_origin + solutions[0] * r_ray_direction - cyl.center) < cyl.height / 2. + .2)
+
+    if (solutions[0] > 0. && dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax) < cyl.height / 2.
+	&& dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax) > -cyl.height / 2.)
     {
         t = solutions[0];
     }
-    else if (num_solutions > 1 && solutions[1] > 0. && length(ray_origin + solutions[1] * r_ray_direction - cyl.center) < cyl.height / 2. + .2)
+    else if (num_solutions > 1 && dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax) < cyl.height / 2.
+	&& dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax) > -cyl.height / 2.)
     {
         t = solutions[1];
     }
