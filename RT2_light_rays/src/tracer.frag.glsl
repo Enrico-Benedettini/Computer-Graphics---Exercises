@@ -173,10 +173,33 @@ bool ray_plane_intersection(
 		vec3 plane_normal, float plane_offset, 
 		out float t, out vec3 normal) 
 {
+	/** #TODO RT1.1:
+	The plane is described by its normal vec3(nx, ny, nz) and an offset d.
+	Point p belongs to the plane iff `dot(normal, p) = d`.
+
+	- compute the ray's ntersection of the plane
+	- if ray and plane are parallel there is no intersection
+	- otherwise compute intersection data and store it in `normal`, and `t` (distance along ray until intersection).
+	- return whether there is an intersection in front of the viewer (t > 0)
+	*/
+
 	// can use the plane center if you need it
 	vec3 plane_center = plane_normal * plane_offset;
 	t = MAX_RANGE + 10.;
-	//normal = ...;
+
+	float direction = dot(ray_direction, plane_normal);
+	vec3 distance = plane_center - ray_origin;
+	float numerator = dot(distance, plane_normal);
+	t = numerator / direction;
+    
+	if (t >= 0.0) {
+		float x = 1.0;     
+		if (direction >= 0.0) {
+			x = -1.0;
+		}
+		normal = x * plane_normal;
+		return true;
+	}
 	return false;
 }
 
@@ -188,11 +211,65 @@ bool ray_cylinder_intersection(
 		Cylinder cyl,
 		out float t, out vec3 normal) 
 {
+	/** #TODO RT1.2.2: 
+	- compute the ray's first valid intersection with the cylinder
+		(valid means in front of the viewer: t > 0)
+	- store intersection point in `intersection_point`
+	- store ray parameter in `t`
+	- store normal at intersection_point in `normal`.
+	- return whether there is an intersection with t > 0
+	*/
+
+    vec3 cylinder_axis = normalize(cyl.axis);
+
+    vec3 r_ray_direction = ray_direction;
+
 	vec3 intersection_point;
 	t = MAX_RANGE + 10.;
 
-	return false;
+    float dx = ray_origin.x - cyl.center.x;
+    float dy = ray_origin.y - cyl.center.y;
+    
+    vec3 d = ray_direction - dot(ray_direction, cyl.axis) * cyl.axis;
+	vec3 o = ray_origin - cyl.center;
+
+	float a = dot(d, d);
+	float b = 2.0 * dot(d, o - dot(o, cyl.axis) * cyl.axis);
+	float c = dot(o - dot(o, cyl.axis) * cyl.axis, o - dot(o, cyl.axis) * cyl.axis) - cyl.radius * cyl.radius;
+
+    vec2 solutions;
+
+    int num_solutions = solve_quadratic(a, b, c, solutions);
+
+    if (num_solutions <= 0)
+    {
+        return false;
+    }
+
+    if (solutions[1] < solutions[0]) {
+        float temp = solutions[1];
+        solutions[1] = solutions[0];
+        solutions[0] = temp;
+    }
+
+    if (solutions[0] > 0. && length(ray_origin + solutions[0] * r_ray_direction - cyl.center) < cyl.height / 2. + .2)
+    {
+        t = solutions[0];
+    }
+    else if (num_solutions > 1 && solutions[1] > 0. && length(ray_origin + solutions[1] * r_ray_direction - cyl.center) < cyl.height / 2. + .2)
+    {
+        t = solutions[1];
+    }
+    else {
+        return false;
+    }
+
+    intersection_point = ray_origin + r_ray_direction * t;
+	normal = (intersection_point - (((intersection_point-cyl.center)*cyl.axis)+cyl.center)) / cyl.radius;
+
+	return true;
 }
+
 
 
 /*
@@ -290,6 +367,26 @@ vec3 lighting(
 
 	You can use existing methods for `vec3` objects such as `mirror`, `reflect`, `norm`, `dot`, and `normalize`.
 	*/
+	 
+	vec3 l = (normalize(light.position-object_point));
+	float diff_component = mat.diffuse*(dot(normalize(object_normal),l));
+	
+	float x = 1.;
+	float y = 1.;
+	if (dot(normalize(object_normal),l) < 0.) {
+		x = 0.;
+	} 
+
+	vec3 r = normalize(2.*normalize(object_normal)*(dot(normalize(object_normal),l))-l);
+
+	
+	float spec_component = mat.specular*(pow(dot(r,normalize(direction_to_camera)), mat.shininess));
+	
+	if (dot(r,normalize(direction_to_camera)) < 0.) {
+		y = 0.;
+	}
+	
+
 
 	/** #TODO RT2.2: 
 	- shoot a shadow ray from the intersection point to the light
@@ -304,7 +401,7 @@ vec3 lighting(
 	#if SHADING_MODE == SHADING_MODE_BLINN_PHONG
 	#endif
 
-	return mat.color;
+	return light.color*(x*diff_component+y*spec_component);
 }
 
 /*
@@ -326,7 +423,7 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 
 	We suggest you structure your code in the following way:
 
-	vec3 pix_color          = vec3(0.);
+	vec3 pix_color          = vec3(0.)
 	float reflection_weight = ...;
 
 	for(int i_reflection = 0; i_reflection < NUM_REFLECTIONS+1; i_reflection++) {
@@ -350,8 +447,10 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 	vec3 col_normal = vec3(0.);
 	int mat_id = 0;
 	if(ray_intersection(ray_origin, ray_direction, col_distance, col_normal, mat_id)) {
+		
 		Material m = get_material(mat_id);
-		pix_color = m.color;
+
+		pix_color = light_color_ambient*m.ambient* // LIGHTING;
 
 		#if NUM_LIGHTS != 0
 		// for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
