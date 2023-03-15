@@ -252,13 +252,11 @@ bool ray_cylinder_intersection(
     }
 
 
-    if (solutions[0] > 0. && dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax) < cyl.height / 2.
-	&& dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax) > -cyl.height / 2.)
+    if (solutions[0] > 0. && abs(dot((ray_origin + solutions[0] * r_ray_direction - cyl.center),ax)) < cyl.height / 2.)
     {
         t = solutions[0];
     }
-    else if (num_solutions > 1 && dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax) < cyl.height / 2.
-	&& dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax) > -cyl.height / 2.)
+    else if (num_solutions > 1 && abs(dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax)) < cyl.height / 2.)
     {
         t = solutions[1];
     }
@@ -267,7 +265,12 @@ bool ray_cylinder_intersection(
     }
 
     intersection_point = ray_origin + r_ray_direction * t;
-	normal = (intersection_point - (((intersection_point-cyl.center)*cyl.axis)+cyl.center)) / cyl.radius;
+	normal = normalize(intersection_point - cyl.center - dot(intersection_point - cyl.center, cylinder_axis) * cylinder_axis);
+
+    if (dot(normal, ray_direction) > 0.)
+    {
+        normal *= -1.;
+    }
 
 	return true;
 }
@@ -368,41 +371,53 @@ vec3 lighting(
 
 	You can use existing methods for `vec3` objects such as `mirror`, `reflect`, `norm`, `dot`, and `normalize`.
 	*/
-	 
-	vec3 l = (normalize(light.position-object_point));
-	float diff_component = mat.diffuse*(dot(normalize(object_normal),l));
-	
-	float x = 1.;
-	float y = 1.;
-	if (dot(normalize(object_normal),l) < 0.) {
-		x = 0.;
-	} 
-
-	vec3 r = normalize(2.*normalize(object_normal)*(dot(normalize(object_normal),l))-l);
-
-	
-	float spec_component = mat.specular*(pow(dot(r,normalize(direction_to_camera)), mat.shininess));
-	
-	if (dot(r,normalize(direction_to_camera)) < 0.) {
-		y = 0.;
-	}
-	
-
 
 	/** #TODO RT2.2: 
 	- shoot a shadow ray from the intersection point to the light
 	- check whether it intersects an object from the scene
 	- update the lighting accordingly
 	*/
+	 
+    vec3 n = normalize(object_normal);
+	vec3 l = normalize(light.position - object_point);
+	vec3 r = normalize(2. * n * dot(n, l) - l);
+    vec3 v = normalize(direction_to_camera);
+    vec3 h = normalize(v + l);
 
+    const float ACNE_REDUCER = 0.1;
 
+    float col_dist;
+    vec3 col_norm;
+    int mat_id;
+
+    if (ray_intersection(light.position, -l, col_dist, col_norm, mat_id)) {
+        if (col_dist < length(light.position - object_point) - ACNE_REDUCER) {
+            return vec3(0.);
+        }
+    }
+
+	float diff_component = max(0., mat.diffuse * dot(n, l));
+
+    float spec_component = 0.;
 	#if SHADING_MODE == SHADING_MODE_PHONG
+	if (dot(r, v) < 0.) {
+		spec_component = 0.;
+	}
+    else {
+        spec_component = mat.specular * pow(dot(r, v), mat.shininess);
+    }
 	#endif
 
 	#if SHADING_MODE == SHADING_MODE_BLINN_PHONG
-	#endif
+	if (dot(h, n) < 0.) {
+		spec_component = 0.;
+	}   
+    else {
+	    spec_component = mat.specular * pow(dot(h, n), mat.shininess);
+    }
+	#endif 
 
-	return light.color*(x*diff_component+y*spec_component);
+	return mat.color * light.color * (diff_component + spec_component);
 }
 
 /*
@@ -443,23 +458,46 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 	*/
 
 	vec3 pix_color = vec3(0.);
+    float reflection_weight = 1.;
 
-	float col_distance;
-	vec3 col_normal = vec3(0.);
-	int mat_id = 0;
+    const float ACNE_REDUCER = 0.001;
 
-	if(ray_intersection(ray_origin, ray_direction, col_distance, col_normal, mat_id)) {
-		
-		Material m = get_material(mat_id);
+    for (int i_reflection = 0; i_reflection < NUM_REFLECTIONS + 1; i_reflection++) {
+	    float col_distance;
+	    vec3 col_normal = vec3(0.);
+	    int mat_id = 0;
 
-		pix_color = light_color_ambient*m.ambient; // LIGHTING;
+	    if (!ray_intersection(ray_origin + ray_direction * ACNE_REDUCER, ray_direction, col_distance, col_normal, mat_id)) {
+            break;
+	    }
 
-		#if NUM_LIGHTS != 0
-		for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
-            pix_color += lighting(ray_origin + ray_direction * col_distance, col_normal, -ray_origin, lights[i_light], m); 
-		}
-		#endif
-	}
+        vec3 ray_hit = ray_origin + ray_direction * col_distance;
+
+        Material m = get_material(mat_id);
+
+        float mirror = m.mirror;
+
+        if (i_reflection == NUM_REFLECTIONS) {
+            mirror = 0.;
+        }
+
+        pix_color += reflection_weight * (1. - mirror) * light_color_ambient * m.ambient * m.color;
+
+        #if NUM_LIGHTS != 0
+        for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
+            vec3 light = lighting(ray_hit, col_normal, -ray_direction, lights[i_light], m); 
+            pix_color += reflection_weight * (1. - mirror) * light;
+        }
+        #endif
+        
+        ray_origin = ray_hit;
+        ray_direction = normalize(2. * col_normal * dot(col_normal, -ray_direction) + ray_direction);
+        reflection_weight *= mirror;
+
+        if (reflection_weight == 0.) {
+            break;
+        }
+    }
 
 	return pix_color;
 }
