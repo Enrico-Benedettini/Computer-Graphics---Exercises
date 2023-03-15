@@ -242,10 +242,8 @@ bool ray_cylinder_intersection(
     if (num_solutions <= 0)
     {
         return false;
-    } else if (num_solutions <= 1)
-    {
-		t = solutions[0];
-    }else if (solutions[1] < solutions[0]) {
+    } 
+    else if (solutions[1] < solutions[0]) {
         float temp = solutions[1];
         solutions[1] = solutions[0];
         solutions[0] = temp;
@@ -256,11 +254,15 @@ bool ray_cylinder_intersection(
     {
         t = solutions[0];
     }
-    else if (num_solutions > 1 && abs(dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax)) < cyl.height / 2.)
+    else if (num_solutions > 1 && solutions[1] > 0. && abs(dot((ray_origin + solutions[1] * r_ray_direction - cyl.center),ax)) < cyl.height / 2.)
     {
         t = solutions[1];
     }
     else {
+        return false;
+    }
+
+    if (t > MAX_RANGE) {
         return false;
     }
 
@@ -384,7 +386,7 @@ vec3 lighting(
     vec3 v = normalize(direction_to_camera);
     vec3 h = normalize(v + l);
 
-    const float ACNE_REDUCER = 0.0001;
+    const float ACNE_REDUCER = 0.001;
 
     float col_dist;
     vec3 col_norm;
@@ -467,7 +469,13 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 	    vec3 col_normal = vec3(0.);
 	    int mat_id = 0;
 
-	    if (!ray_intersection(ray_origin + ray_direction * ACNE_REDUCER, ray_direction, col_distance, col_normal, mat_id)) {
+        vec3 acne_offset = ray_direction * ACNE_REDUCER;
+
+        if (i_reflection == 0) {
+            acne_offset = vec3(0.);
+        }
+
+	    if (!ray_intersection(ray_origin + acne_offset, ray_direction, col_distance, col_normal, mat_id)) {
             break;
 	    }
 
@@ -494,7 +502,11 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
         ray_direction = normalize(2. * col_normal * dot(col_normal, -ray_direction) + ray_direction);
         reflection_weight *= mirror;
 
-        if (reflection_weight <= 0.000001) {
+        if (reflection_weight <= 0.00000001) {
+            break;
+        }
+
+        if (mirror == 0.) {
             break;
         }
     }
