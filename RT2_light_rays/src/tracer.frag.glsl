@@ -384,7 +384,7 @@ vec3 lighting(
     vec3 v = normalize(direction_to_camera);
     vec3 h = normalize(v + l);
 
-    const float ACNE_REDUCER = 0.1;
+    const float ACNE_REDUCER = 0.0001;
 
     float col_dist;
     vec3 col_norm;
@@ -481,7 +481,7 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
             mirror = 0.;
         }
 
-        pix_color += reflection_weight * (1. - mirror) * light_color_ambient * m.ambient * m.color;
+        pix_color += (1. - mirror) * reflection_weight * light_color_ambient * m.ambient * m.color;
 
         #if NUM_LIGHTS != 0
         for(int i_light = 0; i_light < NUM_LIGHTS; i_light++) {
@@ -494,7 +494,7 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
         ray_direction = normalize(2. * col_normal * dot(col_normal, -ray_direction) + ray_direction);
         reflection_weight *= mirror;
 
-        if (reflection_weight == 0.) {
+        if (reflection_weight <= 0.000001) {
             break;
         }
     }
