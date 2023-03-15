@@ -267,6 +267,11 @@ bool ray_cylinder_intersection(
     intersection_point = ray_origin + r_ray_direction * t;
 	normal = normalize(intersection_point - cyl.center - dot(intersection_point - cyl.center, cylinder_axis) * cylinder_axis);
 
+    if (dot(normal, ray_direction) > 0.)
+    {
+        normal *= -1.;
+    }
+
 	return true;
 }
 
@@ -379,35 +384,37 @@ vec3 lighting(
     vec3 v = normalize(direction_to_camera);
     vec3 h = normalize(v + l);
 
-    const float ACNE_REDUCER = 0.0001;
+    const float ACNE_REDUCER = 0.1;
 
     float col_dist;
     vec3 col_norm;
     int mat_id;
-    if (ray_intersection(object_point + v * ACNE_REDUCER, l, col_dist, col_norm, mat_id) && col_dist > ACNE_REDUCER) {
-        return vec3(0.);
+
+    if (ray_intersection(light.position, -l, col_dist, col_norm, mat_id)) {
+        if (col_dist < length(light.position - object_point) - ACNE_REDUCER) {
+            return vec3(0.);
+        }
     }
 
-	float diff_component = mat.diffuse * dot(n, l);
-	
-	if (dot(n, l) < 0.) {
-		diff_component = 0.;
-	} 
+	float diff_component = max(0., mat.diffuse * dot(n, l));
 
     float spec_component = 0.;
-
 	#if SHADING_MODE == SHADING_MODE_PHONG
-	spec_component = mat.specular * pow(dot(r, v), mat.shininess);
 	if (dot(r, v) < 0.) {
 		spec_component = 0.;
-	}   
+	}
+    else {
+        spec_component = mat.specular * pow(dot(r, v), mat.shininess);
+    }
 	#endif
 
 	#if SHADING_MODE == SHADING_MODE_BLINN_PHONG
-	spec_component = mat.specular * pow(dot(h, n), mat.shininess);
 	if (dot(h, n) < 0.) {
 		spec_component = 0.;
 	}   
+    else {
+	    spec_component = mat.specular * pow(dot(h, n), mat.shininess);
+    }
 	#endif 
 
 	return mat.color * light.color * (diff_component + spec_component);
@@ -453,7 +460,7 @@ vec3 render_light(vec3 ray_origin, vec3 ray_direction) {
 	vec3 pix_color = vec3(0.);
     float reflection_weight = 1.;
 
-    const float ACNE_REDUCER = 0.01;
+    const float ACNE_REDUCER = 0.001;
 
     for (int i_reflection = 0; i_reflection < NUM_REFLECTIONS + 1; i_reflection++) {
 	    float col_distance;
