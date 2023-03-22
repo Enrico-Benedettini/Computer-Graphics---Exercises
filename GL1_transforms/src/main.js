@@ -151,7 +151,6 @@ async function main() {
 			[0, 0, Math.abs(cam_angle_y) % (Math.PI * 2) % (Math.PI * 3 / 2) > Math.PI / 2 ? -1 : 1], // up vector
 		)
 
-        console.log(r);
 
 		// Store the combined transform in mat_turntable
 		// frame_info.mat_turntable = A * B * ...
