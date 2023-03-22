@@ -65,6 +65,10 @@ async function load_resources(regl) {
 	return resources
 }
 
+const z_rot = mat4.create();
+const y_rot = mat4.create();
+const cam_rot = mat4.create();
+
 async function main() {
 	/* const in JS means the variable will not be bound to a new value, but the value can be modified (if its an object or array)
 		https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const
@@ -122,6 +126,8 @@ async function main() {
 	---------------------------------------------------------------*/
 	const cam_distance_base = 15.
 
+    const r = vec3.create();
+
 	function update_cam_transform(frame_info) {
 		const {cam_angle_z, cam_angle_y, cam_distance_factor} = frame_info
 
@@ -133,12 +139,18 @@ async function main() {
 		* cam_angle_y - camera ray's angle around the Y axis
 		*/
 
+        const r_norm = [
+            -Math.cos(cam_angle_z), 
+            Math.sin(cam_angle_z), 
+            Math.sin(cam_angle_y)];
+        
 		// Example camera matrix, looking along forward-X, edit this
 		const look_at = mat4.lookAt(mat4.create(), 
-			[-5, 0, 0], // camera position in world coord
+			r_norm.map(x => x * cam_distance_factor * cam_distance_base), // camera position in world coord
 			[0, 0, 0], // view target point
 			[0, 0, 1], // up vector
 		)
+
 		// Store the combined transform in mat_turntable
 		// frame_info.mat_turntable = A * B * ...
 		mat4_matmul_many(frame_info.mat_turntable, look_at) // edit this
