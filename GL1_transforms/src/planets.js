@@ -132,7 +132,7 @@ export class SysOrbitalMovement {
             mat4.fromTranslation(M_translation, parent_translation_v);
 		} 
 
-        mat4.fromZRotation(M_selfRotation, sim_time * actor.rotation_speed);
+        mat4.fromZRotation(M_selfRotation, sim_time * actor.rotation_speed + Math.PI);
         mat4.fromScaling(M_scale, [actor.size, actor.size, actor.size]);
 
 		// Store the combined transform in actor.mat_model_to_world
@@ -218,3 +218,4 @@ export class SysRenderPlanetsUnshaded {
 		this.pipeline(entries_to_draw)
 	}
 }
+
