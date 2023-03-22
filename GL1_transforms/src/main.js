@@ -139,17 +139,19 @@ async function main() {
 		* cam_angle_y - camera ray's angle around the Y axis
 		*/
 
-        const r_norm = [
-            -Math.cos(cam_angle_z), 
-            Math.sin(cam_angle_z), 
-            Math.sin(cam_angle_y)];
+        const r = [
+            Math.cos(cam_angle_y) * Math.cos(cam_angle_z) * cam_distance_factor * cam_distance_base , 
+            -Math.cos(cam_angle_y) * Math.sin(cam_angle_z) * cam_distance_factor * cam_distance_base, 
+            -Math.sin(cam_angle_y) * cam_distance_factor * cam_distance_base];
         
 		// Example camera matrix, looking along forward-X, edit this
 		const look_at = mat4.lookAt(mat4.create(), 
-			r_norm.map(x => x * cam_distance_factor * cam_distance_base), // camera position in world coord
+			r, // camera position in world coord
 			[0, 0, 0], // view target point
-			[0, 0, 1], // up vector
+			[0, 0, Math.abs(cam_angle_y) % (Math.PI * 2) % (Math.PI * 3 / 2) > Math.PI / 2 ? -1 : 1], // up vector
 		)
+
+        console.log(r);
 
 		// Store the combined transform in mat_turntable
 		// frame_info.mat_turntable = A * B * ...
