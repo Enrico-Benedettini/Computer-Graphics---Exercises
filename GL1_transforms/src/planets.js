@@ -218,4 +218,3 @@ export class SysRenderPlanetsUnshaded {
 		this.pipeline(entries_to_draw)
 	}
 }
-
