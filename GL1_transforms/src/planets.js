@@ -83,6 +83,11 @@ export function create_scene_content() {
 }
 
 
+const M_orbit = mat4.create();
+const M_translation = mat4.create();
+const M_selfRotation = mat4.create();
+const M_scale = mat4.create();
+
 export class SysOrbitalMovement {
 
 	constructor() {
@@ -111,18 +116,27 @@ export class SysOrbitalMovement {
 			mat4.fromScaling takes a 3D vector!
 		*/
 
-		//const M_orbit = mat4.create();
-
-		if(actor.orbit !== null) {
+        mat4.identity(M_orbit);
+        mat4.identity(M_translation);
+		
+        if(actor.orbit !== null) {
 			// Parent's translation
 			const parent = actors_by_name[actor.orbit]
 			const parent_translation_v = mat4.getTranslation([0, 0, 0], parent.mat_model_to_world)
+            
+            // Orbit around the parent
+            mat4.fromTranslation(M_translation, [-actor.orbit_radius, 0, 0]);
+            mat4.fromZRotation(M_orbit, sim_time * actor.orbit_speed + actor.orbit_phase);
+            mat4.multiply(M_orbit, M_orbit, M_translation);
 
-			// Orbit around the parent
+            mat4.fromTranslation(M_translation, parent_translation_v);
 		} 
-		
+
+        mat4.fromZRotation(M_selfRotation, sim_time * actor.rotation_speed);
+        mat4.fromScaling(M_scale, [actor.size, actor.size, actor.size]);
+
 		// Store the combined transform in actor.mat_model_to_world
-		//mat4_matmul_many(actor.mat_model_to_world, ...);
+		mat4_matmul_many(actor.mat_model_to_world, M_translation, M_orbit, M_selfRotation, M_scale);
 	}
 
 	simulate(scene_info) {
@@ -191,7 +205,7 @@ export class SysRenderPlanetsUnshaded {
 
 				// #TODO GL1.2.1.2
 				// Calculate mat_mvp: model-view-projection matrix	
-				//mat4_matmul_many(mat_mvp, ...)
+				mat4_matmul_many(mat_mvp, mat_projection, mat_view, actor.mat_model_to_world);
 
 				entries_to_draw.push({
 					mat_mvp: mat_mvp,
