@@ -115,29 +115,3 @@ The various units of measurement available in CSS:
 .hidden {
 	display: none;
 }
-
-
-.selector {
-	list-style: none;
-	padding: 0;
-}
-
-.selector li {
-	padding: 0.25em;
-	border-radius: 0.4em;
-	display: inline-block;
-}
-
-.selector li:hover {
-	background:hsl(0, 0%, 30%);
-}
-
-.selector li.selected {
-	border: hsl(135, 100%, 73%) 1px solid;
-}
-
-.selector.horizontal li {
-	display: inline;
-	padding: 1rem;
-}
-

@@ -2,15 +2,13 @@
 import {createREGL} from "../lib/regljs_2.1.0/regl.module.js"
 import {vec2, vec3, vec4, mat3, mat4} from "../lib/gl-matrix_3.3.0/esm/index.js"
 
-import {DOM_loaded_promise, load_text, register_keyboard_action} from "./icg_web.js"
-import {icg_mesh_load_obj} from "./icg_mesh.js"
+import {DOM_loaded_promise, load_text, load_texture, register_keyboard_action} from "./icg_web.js"
 import {deg_to_rad, mat4_to_string, vec_to_string, mat4_matmul_many} from "./icg_math.js"
 import {icg_mesh_make_uv_sphere} from "./icg_mesh.js"
+import {SystemRenderGrid} from "./icg_grid.js"
 
-import {create_scene_content, SysRenderNormals, SysRenderShadePervertex, SysRenderShadePerpixel} from "./mesh_render.js"
+import {create_scene_content, SysOrbitalMovement, SysRenderPlanetsUnshaded} from "./planets.js"
 
-import {create_choice_menu} from "./menu.js"
-import { mesh_preprocess } from "./normal_computation.js"
 
 async function load_resources(regl) {
 	/*
@@ -32,31 +30,36 @@ async function load_resources(regl) {
 	// Start downloads in parallel
 	const resource_promises = {}
 	
+	const textures_to_load = [
+		'sun.jpg', 'moon.jpg', 'mars.jpg', 
+		'earth_day.jpg', 'earth_night.jpg', 'earth_gloss.jpg',
+	]
+	for(const tex_name of textures_to_load) {
+		resource_promises[tex_name] = load_texture(regl, `./textures/${tex_name}`)
+	}
+	resource_promises['earth_clouds.jpg'] =  load_texture(regl, `./textures/earth_clouds.jpg`, {wrapS: 'repeat'})
+
+
 	const shaders_to_load = [
-		'normals.vert.glsl', 'normals.frag.glsl',
-		'shade_pervertex.vert.glsl', 'shade_pervertex.frag.glsl',
-		'shade_perpixel.vert.glsl', 'shade_perpixel.frag.glsl',
+		'unshaded.vert.glsl', 'unshaded.frag.glsl',
+		'phong.vert.glsl', 'phong.frag.glsl',
+		'earth.frag.glsl', 'sun.vert.glsl',
+		'billboard.vert.glsl', 'billboard_sunglow.frag.glsl',
 	]
 	for(const shader_name of shaders_to_load) {
-		resource_promises[shader_name] = load_text(`./src/${shader_name}`)
+		resource_promises[shader_name] = load_text(`./src/shaders/${shader_name}`)
 	}
 
-	const meshes_to_load = [
-		"vase1.obj", "cup2.obj", "table.obj", "shadow_scene__terrain.obj", "shadow_scene__wheel.obj",
-	]
-	for(const mesh_name of meshes_to_load) {
-		resource_promises[mesh_name] = icg_mesh_load_obj(`./meshes/${mesh_name}`)
-	}
-
-	// Wait for all downloads to complete
 	const resources = {}
+
+	// Construct a unit sphere mesh
+	// UV sphere https://docs.blender.org/manual/en/latest/modeling/meshes/primitives.html#uv-sphere
+	// we create it in code instead of loading from a file
+	resources['mesh_uvsphere'] = icg_mesh_make_uv_sphere(15)
+	
+	// Wait for all downloads to complete
 	for (const [key, promise] of Object.entries(resource_promises)) {
 		resources[key] = await promise
-	}
-
-	// Compute normals for meshes
-	for(const mesh_name of meshes_to_load) {
-		resources[mesh_name] = mesh_preprocess(regl, resources[mesh_name])
 	}
 
 	return resources
@@ -77,84 +80,20 @@ async function main() {
 	const canvas_elem = document.getElementsByTagName('canvas')[0]
 
 
-/*---------------------------------------------------------------
-		UI
-	---------------------------------------------------------------*/
-
-	// Debug overlay
-	const debug_overlay = document.getElementById('debug-overlay')
-	const debug_text = document.getElementById('debug-text')
-	register_keyboard_action('h', () => debug_overlay.classList.toggle('hidden'))
-	
-	// Pause
-	let is_paused = false;
-	register_keyboard_action('p', () => is_paused = !is_paused);
-
-	// mode
-	let render_mode = 'Normals'
-	create_choice_menu(
-		document.getElementById('menu-mode'),
-		['Normals', 'Gouraud', 'Phong'],
-		(mode) => {
-			console.log('Set shading mode', mode)
-			render_mode = mode
-		},
-	)
-
-	// Predefined views
-	register_keyboard_action('0', () => {
-		console.log('[' + frame_info.mat_view.join(', ') + ']')
-		console.log(frame_info)
-	})
-	const set_predef_view_1 = () => {
-		is_paused = true
-
-		frame_info.cam_angle_z = -2.731681469282041
-		frame_info.cam_angle_y = -0.4785987755982989
-		frame_info.cam_distance_factor = 0.7938322410201695
-		
-		mat4.set(frame_info.mat_turntable, 0.3985278716916164, -0.42238331447052535, 0.8141055651092455, 0, 0.9171562219627312, 0.18353636962060468, -0.3537497216133721, 0, 0, 0.8876411080405088, 0.4605358436827886, 0, 0, 0, -11.907483615302542, 1)
-	}
-	register_keyboard_action('1', set_predef_view_1)
-	register_keyboard_action('2', () => {
-		is_paused = true
-
-		frame_info.cam_angle_z = -3.911681469282042
-		frame_info.cam_angle_y = -0.8785987755983002
-		frame_info.cam_distance_factor = 1.1664
-
-		mat4.set(frame_info.mat_turntable,-0.6961989976147306, -0.5526325769705245, 0.4581530209342307, 0, 0.7178488390463861, -0.5359655476314885, 0.4443354318888313, 0, 0, 0.6382304964689449, 0.7698453308145761, 0, 0, 0, -17.496000000000002, 1)
-	})
-	register_keyboard_action('3', () => {
-		
-		frame_info.cam_angle_z = -5.7766814692820505
-		frame_info.cam_angle_y = -1.0585987755983004
-		frame_info.cam_distance_factor = 1.
-
-		mat4.set(frame_info.mat_turntable, -0.485123013297449, 0.7622279286347869, -0.4285606687253571, 0, -0.8744459171207806, -0.4228669861897321, 0.23775586222343667, 0, 0, 0.49009396731640664, 0.8716696066744928, 0, 0, 0, -15, 1)
-	})
-
-
-
 	/*---------------------------------------------------------------
 		Scene and systems
 	---------------------------------------------------------------*/
 	const resources = await load_resources(regl)	
 
-
-
-
-
 	const scene_info = create_scene_content()
 
-	const sys_render_normals = new SysRenderNormals(regl, resources)
-	sys_render_normals.check_scene(scene_info)
+	const sys_orbital_movement = new SysOrbitalMovement()
 
-	const sys_render_gouraud = new SysRenderShadePervertex(regl, resources)
+	const sys_render_unshaded = new SysRenderPlanetsUnshaded(regl, resources)
+
+	const sys_render_grid = new SystemRenderGrid(regl, resources)
+
 	
-	const sys_render_phong = new SysRenderShadePerpixel(regl, resources)
-
-
 
 	/*---------------------------------------------------------------
 		Frame info
@@ -173,8 +112,8 @@ async function main() {
 		mat_projection: mat4.create(),
 
 		// Consider the sun, which locates at [0, 0, 0], as the only light source
-		light_position_world: [10., 0.75, 10.],
-		light_position_cam: [0., 0., 0.],
+		light_position_world: [0, 0, 0, 1],
+		light_position_cam: [0, 0, 0, 1],
 		light_color: [1.0, 0.941, 0.898],
 	}
 
@@ -182,6 +121,8 @@ async function main() {
 		Camera
 	---------------------------------------------------------------*/
 	const cam_distance_base = 15.
+
+    const r = vec4.create();
 
 	function update_cam_transform(frame_info) {
 		const {cam_angle_z, cam_angle_y, cam_distance_factor} = frame_info
@@ -193,20 +134,15 @@ async function main() {
 		* cam_angle_z - camera ray's angle around the Z axis
 		* cam_angle_y - camera ray's angle around the Y axis
 		*/
-
-        const r = [
-            Math.cos(cam_angle_y) * Math.cos(cam_angle_z) * cam_distance_factor * cam_distance_base , 
-            -Math.cos(cam_angle_y) * Math.sin(cam_angle_z) * cam_distance_factor * cam_distance_base, 
-            -Math.sin(cam_angle_y) * cam_distance_factor * cam_distance_base];
+        vec4.multiply(r, cam_distance_factor, cam_distance_base);
         
+
 		// Example camera matrix, looking along forward-X, edit this
 		const look_at = mat4.lookAt(mat4.create(), 
-			r, // camera position in world coord
+			[r[0], r[1], r[2]], // camera position in world coord
 			[0, 0, 0], // view target point
-			[0, 0, Math.abs(cam_angle_y) % (Math.PI * 2) % (Math.PI * 3 / 2) > Math.PI / 2 ? -1 : 1], // up vector
+			[0, 0, 1], // up vector
 		)
-
-
 		// Store the combined transform in mat_turntable
 		// frame_info.mat_turntable = A * B * ...
 		mat4_matmul_many(frame_info.mat_turntable, look_at) // edit this
@@ -235,7 +171,88 @@ async function main() {
 		update_cam_transform(frame_info)
 	})
 
-	set_predef_view_1()
+	/*---------------------------------------------------------------
+		UI
+	---------------------------------------------------------------*/
+
+	// Debug overlay
+	const debug_overlay = document.getElementById('debug-overlay')
+	const debug_text = document.getElementById('debug-text')
+	register_keyboard_action('h', () => debug_overlay.classList.toggle('hidden'))
+	
+	// Pause
+	let is_paused = false;
+	register_keyboard_action('p', () => is_paused = !is_paused);
+
+	// Grid, to demonstrate keyboard shortcuts
+	let grid_on = true;
+	register_keyboard_action('g', () => grid_on = !grid_on);
+
+	// Focusing on selected planet
+	let selected_planet_name = 'earth';
+	const elem_view_select = document.getElementById('view-select')
+
+	function set_selected_planet(name) {
+		console.log('Selecting', name);
+		selected_planet_name = name;
+		frame_info.cam_distance_factor = 3*scene_info.actors_by_name[name].size / cam_distance_base;
+		update_cam_transform(frame_info)
+	}
+
+	set_selected_planet('earth');
+
+	for (const name in scene_info.actors_by_name) {
+		if (scene_info.actors_by_name.hasOwnProperty(name)) {
+			const entry = document.createElement('li');
+			entry.textContent = name;
+			entry.addEventListener('click', (event) => set_selected_planet(name));
+			elem_view_select.appendChild(entry);
+		}
+	}
+
+
+	// Predefined views
+	register_keyboard_action('1', () => {
+		is_paused = true
+		grid_on = true
+
+		set_selected_planet('earth')
+
+		scene_info.sim_time = 32.0
+		frame_info.cam_angle_z = 169.3 * deg_to_rad
+		frame_info.cam_angle_y = -201.7 * deg_to_rad
+		frame_info.cam_distance_factor = 8.2 / cam_distance_base
+
+		update_cam_transform(frame_info)
+	})
+	register_keyboard_action('2', () => {
+		is_paused = true
+		grid_on = true
+
+		set_selected_planet('sun')
+
+		scene_info.sim_time = 17.7
+		frame_info.cam_angle_z = 19.1 * deg_to_rad
+		frame_info.cam_angle_y = -33.2 * deg_to_rad
+		frame_info.cam_distance_factor = 18.9 / cam_distance_base
+
+		update_cam_transform(frame_info)
+	})
+	register_keyboard_action('3', () => {
+		is_paused = true
+		grid_on = false
+
+		set_selected_planet('moon')
+
+		scene_info.sim_time = 18.73
+		frame_info.cam_angle_z = -124.1 * deg_to_rad
+		frame_info.cam_angle_y = 176.8 * deg_to_rad
+		frame_info.cam_distance_factor = 3.2 / cam_distance_base
+
+		update_cam_transform(frame_info)
+	})
+
+
 
 	/*---------------------------------------------------------------
 		Render loop
@@ -254,31 +271,61 @@ async function main() {
 		frame_info.sim_time = scene_info.sim_time
 		prev_regl_time = frame.time;
 
+	
+		// Update planet transforms
+		sys_orbital_movement.simulate(scene_info)
+
+
 		// Calculate view matrix, view centered on chosen planet
-		mat4.perspective(mat_projection, 
-			deg_to_rad * 60, // fov y
-			frame.framebufferWidth / frame.framebufferHeight, // aspect ratio
-			0.01, // near
-			100, // far
-		)
-		mat4.copy(mat_view, mat_turntable)
+		{
+			mat4.perspective(mat_projection, 
+				deg_to_rad * 60, // fov y
+				frame.framebufferWidth / frame.framebufferHeight, // aspect ratio
+				0.01, // near
+				100, // far
+			)
+
+			const selected_planet_model_mat = scene_info.actors_by_name[selected_planet_name].mat_model_to_world
+			const selected_planet_position = mat4.getTranslation([0, 0, 0], selected_planet_model_mat)
+			vec3.scale(selected_planet_position, selected_planet_position, -1);
+			const selected_planet_translation_mat = mat4.fromTranslation(mat4.create(), selected_planet_position)
+			mat4_matmul_many(mat_view, mat_turntable, selected_planet_translation_mat)
+		}
 
 		// Calculate light position in camera frame
-		vec3.transformMat4(light_position_cam, light_position_world, mat_view)
+		vec4.transformMat4(light_position_cam, light_position_world, mat_view);
+
+		// Calculate camera position and store it in `camera_position`, it will be needed for the billboard
+		{
+			/*
+			Camera is at [0, 0, 0] in camera coordinates.
+			mat_view is a transformation from world to camera coordinates.
+			The inverse of mat_view is a transformation from camera to world coordinates.
+			Transforming [0, 0, 0] from camera to world we obtain the world position of the camera.
+				cam_pos = mat_view^-1 * [0, 0, 0]^T
+			*/
+			const mat_camera_to_world = mat4.invert(mat4.create(), mat_view)
+
+			// Transform [0, 0, 0] from camera to world:
+			//const camera_position = vec3.transformMat4([0, 0, 0], [0, 0, 0], mat_view_invert);
+			// But the rotation and scale parts of the matrix do no affect [0, 0, 0] so, we can just get the translation, its cheaper:
+			mat4.getTranslation(camera_position, mat_camera_to_world)
+		}
 
 		// Set the whole image to black
 		regl.clear({color: [0, 0, 0, 1]});
 
-		if( render_mode === 'Normals' ) {
-			sys_render_normals.render(frame_info, scene_info)
-		} else if ( render_mode === 'Gouraud' ) {
-			sys_render_gouraud.render(frame_info, scene_info)
-		} else if ( render_mode === 'Phong' ) {
-			sys_render_phong.render(frame_info, scene_info)
+		sys_render_unshaded.render(frame_info, scene_info)
+
+		if ( grid_on ) {
+			sys_render_grid.render(frame_info, scene_info)
 		}
 
 
 		debug_text.textContent = `
+Hello! Sim time is ${scene_info.sim_time.toFixed(2)} s
+Camera: angle_z ${(frame_info.cam_angle_z / deg_to_rad).toFixed(1)}, angle_y ${(frame_info.cam_angle_y / deg_to_rad).toFixed(1)}, distance ${(frame_info.cam_distance_factor*cam_distance_base).toFixed(1)}
+cam pos ${vec_to_string(camera_position)}
 `;
 	})
 }
