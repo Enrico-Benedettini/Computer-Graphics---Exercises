@@ -17,10 +17,6 @@ function compute_triangle_normals_and_angle_weights(mesh) {
 	Hint: you can use `vec3` specific methods such as `normalize()`, `add()`, `cross()`, `angle()`, or `subtract()`.
 		  The absolute value of a float is given by `Math.abs()`.
 	*/
-
-    const compute_tri_area = (a, b, c) =>
-        vec3.length(vec3.cross([0,0,0], vec3.subtract([0,0,0], b, a), vec3.subtract([0,0,0], c, a))) / 2.
-
 	const num_faces     = (mesh.faces.length / 3) | 0
 	const tri_normals   = []
 	const angle_weights = []
@@ -29,20 +25,32 @@ function compute_triangle_normals_and_angle_weights(mesh) {
 		const vert2 = get_vert(mesh, mesh.faces[3*i_face + 1])
 		const vert3 = get_vert(mesh, mesh.faces[3*i_face + 2])
 
+        const ab = vec3.normalize([0,0,0], vec3.subtract([0,0,0], vert2, vert1));
+        const ac = vec3.normalize([0,0,0], vec3.subtract([0,0,0], vert3, vert1));
+        const bc = vec3.normalize([0,0,0], vec3.subtract([0,0,0], vert3, vert2));
+        const ba = vec3.normalize([0,0,0], vec3.subtract([0,0,0], vert1, vert2));
+        const ca = vec3.normalize([0,0,0], vec3.subtract([0,0,0], vert1, vert3));
+        const cb = vec3.normalize([0,0,0], vec3.subtract([0,0,0], vert2, vert3));
+
         // normal = normalize(AB x AC).
-        const normal = vec3.normalize([0,0,0], vec3.cross([0,0,0], vec3.subtract([0,0,0], vert2, vert1), 
-            vec3.subtract([0,0,0], vert3, vert1)));
-
-        // Center = 0.3*A + 0.3B + 0.3C.
-        const tri_center = vec3.add([0,0,0], vec3.add([0,0,0], vert1, vert2), vert3).map(x => x / 3.);
-
-        const tri_area = compute_tri_area(vert1, vert2, vert3);
+        const normal = vec3.normalize([0,0,0], vec3.cross([0,0,0], ab, ac));
 
         const weights = [
-            Math.abs(compute_tri_area(tri_center, vert2, vert3) / tri_area), 
-            Math.abs(compute_tri_area(vert1, tri_center, vert3) / tri_area), 
-            Math.abs(compute_tri_area(vert1, vert2, tri_center) / tri_area), 
+            Math.acos(vec3.dot(ab, ac)) / Math.PI, 
+            Math.acos(vec3.dot(ba, bc)) / Math.PI, 
+            Math.acos(vec3.dot(ca, cb)) / Math.PI, 
         ];
+
+        
+        if (Number.isNaN(weights[0]) | !Number.isFinite(weights[0])) {
+            weights[0] = 0.
+        }
+        if (Number.isNaN(weights[1]) | !Number.isFinite(weights[1])) {
+            weights[1] = 0.
+        }
+        if (Number.isNaN(weights[2]) | !Number.isFinite(weights[2])) {
+            weights[2] = 0.
+        }
 
 		// Modify the way triangle normals and angle_weights are computed
 		tri_normals.push(normal)
@@ -73,14 +81,14 @@ function compute_vertex_normals(mesh, tri_normals, angle_weights) {
 		// Add your code for adding the contribution of the current triangle to its vertices' normals
         const weights = angle_weights[i_face];
 
-        vertex_normals[iv1] = normal.map(x => x * weights[0])
-        vertex_normals[iv2] = normal.map(x => x * weights[1])
-        vertex_normals[iv3] = normal.map(x => x * weights[2])
+        vertex_normals[iv1] = vec3.scale([0,0,0], normal, weights[0])
+        vertex_normals[iv2] = vec3.scale([0,0,0], normal, weights[1])
+        vertex_normals[iv3] = vec3.scale([0,0,0], normal, weights[2])
 	}
 
 	for(let i_vertex = 0; i_vertex < num_vertices; i_vertex++) {
 		// Normalize the vertices
-		vertex_normals[i_vertex] = vec3.normalize([0,0,0], vertex_normals[i_vertex])
+		vec3.normalize(vertex_normals[i_vertex], vertex_normals[i_vertex])
 	}
 
 	return vertex_normals
