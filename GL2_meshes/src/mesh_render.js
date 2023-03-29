@@ -207,13 +207,16 @@ class SysRenderMeshes {
 			/* #TODO GL2.2.1 Setup the model-view-projection matrix mat_mvp */
 			//mat4_matmul_many(mat_model_view, ...)
 			//mat4_matmul_many(mat_mvp, ...)
+            mat4_matmul_many(mat_mvp, mat_projection, mat_view, actor.mat_model_to_world);
 
 			/* #TODO GL2.2.2 
 				Calculate mat_mvp like in previous exercise
 				Calculate mat_normals_to_view to be equal to 
 					inverse(transpose( mat view * mat model ))
 			*/
-			// calculate mat_normals_to_view 
+			// calculate mat_normals_to_view
+            
+            mat3.transpose(mat_normals_to_view, mat3.transpose(mat_normals_to_view, mat_mvp));
 
 
 			entries_to_draw.push({
