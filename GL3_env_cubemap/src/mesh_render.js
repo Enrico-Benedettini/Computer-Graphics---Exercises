@@ -93,8 +93,7 @@ class SysRenderMeshes {
 		// calculate mat_model_view, mat_mvp, mat_normals_to_view 
 		mat4_matmul_many(mat_model_view, mat_view, actor.mat_model_to_world)
 		mat4_matmul_many(mat_mvp, mat_projection, mat_model_view);
-
-		mat3.fromMat4(mat_normals_to_view, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), mat_model_view)));
+		mat3.normalFromMat4(mat_normals_to_view, mat_model_view);
 
 		return {mat_model_view, mat_mvp, mat_normals_to_view}
 	}
