@@ -166,7 +166,8 @@ async function main() {
 		/* TODO GL3.0
 		Copy turntable camera from GL2
 		*/
-		const r = [
+
+        const r = [
             -Math.cos(cam_angle_y) * Math.cos(cam_angle_z) * cam_distance_factor * cam_distance_base , 
             Math.cos(cam_angle_y) * Math.sin(cam_angle_z) * cam_distance_factor * cam_distance_base, 
             -Math.sin(cam_angle_y) * cam_distance_factor * cam_distance_base];

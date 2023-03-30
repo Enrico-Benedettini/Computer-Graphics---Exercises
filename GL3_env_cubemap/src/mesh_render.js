@@ -88,14 +88,14 @@ class SysRenderMeshes {
 		const mat_normals_to_view = mat3.create()
 		mat3.identity(mat_normals_to_view)
 
+		
 		/* #TODO GL3.0 Copy mat_model_view, mat_mvp, mat_normals_to_view from GL2.2.2*/
 		// calculate mat_model_view, mat_mvp, mat_normals_to_view 
-
 		mat4_matmul_many(mat_model_view, mat_view, actor.mat_model_to_world)
 		mat4_matmul_many(mat_mvp, mat_projection, mat_model_view);
 
 		mat3.fromMat4(mat_normals_to_view, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), mat_model_view)));
-		
+
 		return {mat_model_view, mat_mvp, mat_normals_to_view}
 	}
 
