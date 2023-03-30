@@ -1,6 +1,5 @@
 precision highp float;
 
-/* #TODO GL3.3.1: Pass on the normals and fragment position in camera coordinates */
 //varying ...
 //varying ...
 varying vec2 v2f_uv;

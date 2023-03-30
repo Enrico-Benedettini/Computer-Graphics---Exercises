@@ -6,7 +6,6 @@ attribute vec2 vertex_tex_coords;
 
 // Per-vertex outputs passed on to the fragment shader
 
-/* #TODO GL3.3.1: Pass on the normals and fragment position in camera coordinates */
 //varying ...
 //varying ...
 varying vec2 v2f_uv;
@@ -32,6 +31,6 @@ void main() {
 	// vertex position in camera coordinates
 	// transform normal to camera coordinates
 	
-	gl_Position = vec4(vertex_position, 1);
+	gl_Position = mat_mvp * vec4(vertex_position, 1);
 
 }

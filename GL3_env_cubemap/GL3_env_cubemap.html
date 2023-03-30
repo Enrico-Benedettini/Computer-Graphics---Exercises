@@ -293,157 +293,90 @@ code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warni
 <h1>ICG GL3 - Textures, reflections, and shadows</h1>
 
 <ul>
-<li><a href="#copy-from-previous-assignment" id="toc-copy-from-previous-assignment">Copy from previous
-assignment</a></li>
-<li><a href="#textures" id="toc-textures">Textures</a>
+<li><a href="#copy-from-previous-assignment">Copy from previous assignment</a></li>
+<li><a href="#textures">Textures</a>
 <ul>
-<li><a href="#texture-uv-coordinates-and-wrapping" id="toc-texture-uv-coordinates-and-wrapping">Texture (UV) coordinates
-and wrapping</a></li>
+<li><a href="#texture-uv-coordinates-and-wrapping">Texture (UV) coordinates and wrapping</a></li>
 </ul></li>
-<li><a href="#environment-mapping" id="toc-environment-mapping">Environment mapping</a>
+<li><a href="#environment-mapping">Environment mapping</a>
 <ul>
-<li><a href="#cube-maps" id="toc-cube-maps">Cube Maps</a></li>
-<li><a href="#building-view-and-projection-matrices-for-a-cube-face" id="toc-building-view-and-projection-matrices-for-a-cube-face">Building
-View and Projection Matrices for a Cube Face</a></li>
-<li><a href="#reflections-from-environment-capture" id="toc-reflections-from-environment-capture">Reflections from
-environment capture</a></li>
+<li><a href="#cube-maps">Cube Maps</a></li>
+<li><a href="#building-view-and-projection-matrices-for-a-cube-face">Building View and Projection Matrices for a Cube Face</a></li>
+<li><a href="#reflections-from-environment-capture">Reflections from environment capture</a></li>
 </ul></li>
-<li><a href="#shadow-mapping" id="toc-shadow-mapping">Shadow Mapping</a>
+<li><a href="#shadow-mapping">Shadow Mapping</a>
 <ul>
-<li><a href="#review-on-phong-lighting-and-shadows" id="toc-review-on-phong-lighting-and-shadows">Review on Phong Lighting
-and Shadows</a></li>
+<li><a href="#review-on-phong-lighting-and-shadows">Review on Phong Lighting and Shadows</a></li>
 </ul></li>
-<li><a href="#real-time-shadows-with-shadow-mapping" id="toc-real-time-shadows-with-shadow-mapping">Real-time Shadows with
-Shadow Mapping</a>
+<li><a href="#real-time-shadows-with-shadow-mapping">Real-time Shadows with Shadow Mapping</a>
 <ul>
-<li><a href="#shaders-and-blend-options" id="toc-shaders-and-blend-options">Shaders and Blend Options</a></li>
-<li><a href="#adding-the-light-contributions" id="toc-adding-the-light-contributions">Adding the light
-contributions</a></li>
+<li><a href="#shaders-and-blend-options">Shaders and Blend Options</a></li>
+<li><a href="#adding-the-light-contributions">Adding the light contributions</a></li>
 </ul></li>
-<li><a href="#what-to-submit" id="toc-what-to-submit">What to
-submit</a></li>
+<li><a href="#what-to-submit">What to submit</a></li>
 </ul>
 
 <figure id="fig-teaser" class="captioned">
 <img src="doc/icg_shadows_title.jpg">
 <figcaption>
-The image from the previous edition of this exercise. It will be
-somewhat different this time.
+The image from the previous edition of this exercise. It will be somewhat different this time.
 </figcaption>
 </figure>
-<p>In this assignment, you will implement a real-time shadowing
-technique for multiple omni-directional point lights. We will be using a
-new framework code, but it should seem very familiar to you; it’s using
-the same libraries as the solar system codebase.</p>
-<h2 id="copy-from-previous-assignment">Copy from previous
-assignment</h2>
+<p>In this assignment, you will implement a real-time shadowing technique for multiple omni-directional point lights. We will be using a new framework code, but it should seem very familiar to you; it’s using the same libraries as the solar system codebase.</p>
+<h2 id="copy-from-previous-assignment">Copy from previous assignment</h2>
 <ul>
-<li>Please copy your turntable camera code from GL1 into
-<code>main.js</code>.</li>
-<li>Please complete the <code>make_transformation_matrices</code>
-function in <code>mesh_render.js</code> with your solution from GL2
-where you set up <code>mat_mvp</code>, <code>mat_model_view</code> and
-<code>mat_normals_to_view</code>.</li>
+<li>Please copy your turntable camera code from GL1 into <code>main.js</code>.</li>
+<li>Please complete the <code>make_transformation_matrices</code> function in <code>mesh_render.js</code> with your solution from GL2 where you set up <code>mat_mvp</code>, <code>mat_model_view</code> and <code>mat_normals_to_view</code>.</li>
 </ul>
 <h2 id="textures">Textures</h2>
-<p>Textures are an important tool in graphics. They represent per-pixel
-data such as surface colors, material parameters, or normals. They are
-often loaded from image files - you can see the texture files in the
-<code>textures</code> directory.</p>
-<p>Let’s start by using textures to control the surface color of our
-objects.</p>
-<p>A sky-sphere is a simple technique with spectacular results. We draw
-a simple sphere around the scene and color it with a texture
-representing the 360 degree view of scenery. There are many background
-panoramas available at <a href="https://hdri-haven.com" class="uri">https://hdri-haven.com</a> or <a href="https://polyhaven.com/hdris" class="uri">https://polyhaven.com/hdris</a>.</p>
-<p>Sampling a texture in GLSL is done with the <code>texture</code>
-function which returns a vec4:</p>
+<p>Textures are an important tool in graphics. They represent per-pixel data such as surface colors, material parameters, or normals. They are often loaded from image files - you can see the texture files in the <code>textures</code> directory.</p>
+<p>Let’s start by using textures to control the surface color of our objects.</p>
+<p>A sky-sphere is a simple technique with spectacular results. We draw a simple sphere around the scene and color it with a texture representing the 360 degree view of scenery. There are many background panoramas available at <a href="https://hdri-haven.com" class="uri">https://hdri-haven.com</a> or <a href="https://polyhaven.com/hdris" class="uri">https://polyhaven.com/hdris</a>.</p>
+<p>Sampling a texture in GLSL is done with the <code>texture</code> function which returns a vec4:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>vec2 uv <span class="op">=</span> <span class="op">...</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>texture2D<span class="op">(</span>tex_color<span class="op">,</span> uv<span class="op">)</span></span></code></pre></div>
 <p>We ususally don’t need the 4-th component of this vector.</p>
 <section id="task-gl3.1.1-sampling-a-texture" class="box task">
 <h4>Task GL3.1.1: Sampling a texture</h4>
-<p>Edit <code>shaders/unshaded.frag.glsl</code> to sample the texture
-<code>tex_color</code> at the UV coordinates passed on from vertex
-shader and output the texture’s color.</p>
+<p>Edit <code>shaders/unshaded.frag.glsl</code> to sample the texture <code>tex_color</code> at the UV coordinates passed on from vertex shader and output the texture’s color.</p>
 </section>
-<h3 id="texture-uv-coordinates-and-wrapping">Texture (UV) coordinates
-and wrapping</h3>
+<h3 id="texture-uv-coordinates-and-wrapping">Texture (UV) coordinates and wrapping</h3>
 <figure id="fig-gl31" class="captioned">
 <img src="doc/GL31_tex_sample.webp">
 <figcaption>
 We want the tiles to repeat 4 times.
 </figcaption>
 </figure>
-<p>The texture coordinates, often denoted UV, specifies the
-correspondence between mesh vertices and points on a texture. In the
-lecture we have seen how this allows us to map a face mesh onto a flat
-texture. Setting the vertex UV coordinates is part of the mesh creation
-process.</p>
-<p>In this section we will modify the UV coordinates of a simple square
-mesh seen in the middle of the scene. We colored it with a tile texture,
-but we would like the tiles to repeat several times. The mesh UVs to be
-edited are in <code>scene.js</code> <code>meshes_construct</code>. Feel
-free to play with the UV coordinates and see what happens.</p>
-<p>When reading from a texture, we provide the UV sampling coordinates.
-The image spans from <code>[0, 0]</code> to <code>[1, 1]</code> UV
-coordinates. As you can see, sampling within this range simply displays
-the image.</p>
-<p>What happens when we sample beyond the range? That is decided by the
-texture wrapping mode. We have these modes available: clamp, repeat,
-mirror. <a href="https://github.com/regl-project/regl/blob/master/API.md#texture-constructor">[REGL
-doc]</a>. Try them out to see which achieves the desired result.</p>
+<p>The texture coordinates, often denoted UV, specifies the correspondence between mesh vertices and points on a texture. In the lecture we have seen how this allows us to map a face mesh onto a flat texture. Setting the vertex UV coordinates is part of the mesh creation process.</p>
+<p>In this section we will modify the UV coordinates of a simple square mesh seen in the middle of the scene. We colored it with a tile texture, but we would like the tiles to repeat several times. The mesh UVs to be edited are in <code>scene.js</code> <code>meshes_construct</code>. Feel free to play with the UV coordinates and see what happens.</p>
+<p>When reading from a texture, we provide the UV sampling coordinates. The image spans from <code>[0, 0]</code> to <code>[1, 1]</code> UV coordinates. As you can see, sampling within this range simply displays the image.</p>
+<p>What happens when we sample beyond the range? That is decided by the texture wrapping mode. We have these modes available: clamp, repeat, mirror. <a href="https://github.com/regl-project/regl/blob/master/API.md#texture-constructor">[REGL doc]</a>. Try them out to see which achieves the desired result.</p>
 <section id="task-gl3.1.2-uv-coordinates-and-wrapping-modes" class="box task">
 <h4>Task GL3.1.2: UV coordinates and wrapping modes</h4>
 <ol type="1">
-<li>Edit the UV coordinates of the square mesh in
-<code>meshes_construct</code> in <code>scene.js</code> to repeat the
-texture 4 times.</li>
-<li>Set the floor texture’s wrapping mode in
-<code>tex_load_options</code> in <code>scene.js</code> to achieve a
-tiling floor.</li>
+<li>Edit the UV coordinates of the square mesh in <code>meshes_construct</code> in <code>scene.js</code> to repeat the texture 4 times.</li>
+<li>Set the floor texture’s wrapping mode in <code>tex_load_options</code> in <code>scene.js</code> to achieve a tiling floor.</li>
 </ol>
 </section>
 <h2 id="environment-mapping">Environment mapping</h2>
-<p>We are going to use environment mapping to achieve real-time
-reflections and shadows. An environment map captures a 360 degree view
-from a given point in the scene. It is somewhat similar to the
-sky-sphere texture, but instead of being stored in a single image, it is
-put in a cube-map. A cube-map is a 6-sided texture where each side looks
-in a different direction.</p>
+<p>We are going to use environment mapping to achieve real-time reflections and shadows. An environment map captures a 360 degree view from a given point in the scene. It is somewhat similar to the sky-sphere texture, but instead of being stored in a single image, it is put in a cube-map. A cube-map is a 6-sided texture where each side looks in a different direction.</p>
 <h3 id="cube-maps">Cube Maps</h3>
-<p>Because we are working with <strong>omnidirectional</strong> point
-lights, our situation is a bit more complicated. It’s not possible to
-set up a single view frustum to render the light rays emanating in all
-directions. Instead, we will set up <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.162ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 500.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-1-Title">
+<p>Because we are working with <strong>omnidirectional</strong> point lights, our situation is a bit more complicated. It’s not possible to set up a single view frustum to render the light rays emanating in all directions. Instead, we will set up <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.162ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 500.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-1-Title">
 <title id="MathJax-SVG-1-Title">6</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAIN-36" x="0" y="0"></use>
 </g>
-</svg></span></span> different view frustums—one for each
-face of an imaginary cube surrounding our light—and take advantage of
-the GPU’s cube-mapping functionality.</p>
-<p>One such frustum together with its corresponding shadow map is
-depicted in Figure below. Please note that, when the eye is placed
-inside the light cube to render the shadow map, we will refer to it as
-the <strong>light camera</strong> to distinguish it from the viewpoint
-used to render the image on screen.</p>
+</svg></span></span> different view frustums—one for each face of an imaginary cube surrounding our light—and take advantage of the GPU’s cube-mapping functionality.</p>
+<p>One such frustum together with its corresponding shadow map is depicted in Figure below. Please note that, when the eye is placed inside the light cube to render the shadow map, we will refer to it as the <strong>light camera</strong> to distinguish it from the viewpoint used to render the image on screen.</p>
 <figure class="captioned">
 <img src="doc/src/shadow_cube.svg" width="70%">
 <figcaption class="justified">
-Figure 1. (a) The shadow cube map for the omnidirectional point light
-source <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.608ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 692.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-2-Title">
+Figure 1. (a) The shadow cube map for the omnidirectional point light source <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.608ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 692.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-2-Title">
 <title id="MathJax-SVG-2-Title">\mathbf{L}</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAINB-4C" x="0" y="0"></use>
 </g>
-</svg></span></span>. It is necessary
-to render a separate shadow map texture for each of the six cube faces.
-Here, the setup for rendering <code>face 3</code>’s map is visualized.
-The coordinate axes indicate the orientation of the light camera used to
-render the shadow map; as usual for OpenGL, the camera looks along the
--<code>z axis</code>. (b) The resulting shadow map texture (darker is
-closer).
+</svg></span></span>. It is necessary to render a separate shadow map texture for each of the six cube faces. Here, the setup for rendering <code>face 3</code>’s map is visualized. The coordinate axes indicate the orientation of the light camera used to render the shadow map; as usual for OpenGL, the camera looks along the -<code>z axis</code>. (b) The resulting shadow map texture (darker is closer).
 </figcaption>
 </figure>
 <p>A cube map texture is really a collection of <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.162ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 500.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-3-Title">
@@ -451,9 +384,7 @@ closer).
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAIN-36" x="0" y="0"></use>
 </g>
-</svg></span></span> textures that are conceptually attached
-to the faces of a cube. Instead of sampling this cube map with 2D
-texture coordinates <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="4.773ex" height="2.843ex" style="vertical-align: -0.838ex;" viewBox="0 -863.1 2055.2 1223.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-4-Title">
+</svg></span></span> textures that are conceptually attached to the faces of a cube. Instead of sampling this cube map with 2D texture coordinates <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="4.773ex" height="2.843ex" style="vertical-align: -0.838ex;" viewBox="0 -863.1 2055.2 1223.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-4-Title">
 <title id="MathJax-SVG-4-Title">(s, t)</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAIN-28" x="0" y="0"></use>
@@ -462,10 +393,8 @@ texture coordinates <span class="math inline"><span class="mjpage"><svg xmlns:xl
  <use xlink:href="#MJMATHI-74" x="1304" y="0"></use>
  <use xlink:href="#MJMAIN-29" x="1665" y="0"></use>
 </g>
-</svg></span></span>, you
-sample it with a 3D vector <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="6.856ex" height="2.843ex" style="vertical-align: -0.838ex;" viewBox="0 -863.1 2951.8 1223.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-5-Title">
-<title id="MathJax-SVG-5-Title">(s, t,
-r)</title>
+</svg></span></span>, you sample it with a 3D vector <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="6.856ex" height="2.843ex" style="vertical-align: -0.838ex;" viewBox="0 -863.1 2951.8 1223.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-5-Title">
+<title id="MathJax-SVG-5-Title">(s, t, r)</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAIN-28" x="0" y="0"></use>
  <use xlink:href="#MJMATHI-73" x="389" y="0"></use>
@@ -475,68 +404,51 @@ r)</title>
  <use xlink:href="#MJMATHI-72" x="2110" y="0"></use>
  <use xlink:href="#MJMAIN-29" x="2562" y="0"></use>
 </g>
-</svg></span></span>; the GPU then returns the color of the point on the cube
-where this 3D vector pierces through:</p>
+</svg></span></span>; the GPU then returns the color of the point on the cube where this 3D vector pierces through:</p>
 <figure>
 <img src="doc/cubemap_sample.png" width="40%">
 </figure>
-<p>This sampling mechanism is a perfect fit for our shadow mapping
-problem: if we sample the cube map with the shadow ray vector pointing
-from the light to <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.485ex" height="2.009ex" style="vertical-align: -0.671ex;" viewBox="0 -576.1 639.5 865.1" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-6-Title">
+<p>This sampling mechanism is a perfect fit for our shadow mapping problem: if we sample the cube map with the shadow ray vector pointing from the light to <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.485ex" height="2.009ex" style="vertical-align: -0.671ex;" viewBox="0 -576.1 639.5 865.1" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-6-Title">
 <title id="MathJax-SVG-6-Title">\mathbf{p}</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAINB-70" x="0" y="0"></use>
 </g>
-</svg></span></span>, it
-will pull out the intersection distance value for this ray (as long as
-we correctly rendered each face’s shadow map).</p>
+</svg></span></span>, it will pull out the intersection distance value for this ray (as long as we correctly rendered each face’s shadow map).</p>
 <p>The <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.162ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 500.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-7-Title">
 <title id="MathJax-SVG-7-Title">6</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAIN-36" x="0" y="0"></use>
 </g>
-</svg></span></span> texture images making up
-the cube map are oriented as follows:</p>
+</svg></span></span> texture images making up the cube map are oriented as follows:</p>
 <figure class="captioned">
 <img src="doc/cube_map_unfolded_wiki.png" width="512">
 <figcaption class="justified">
 Figure 2. Cube mapping texture coordinate systems (from <a href="https://en.wikipedia.org/wiki/Cube_mapping">Wikipedia</a>)
 </figcaption>
 </figure>
-<p>They are wrapped around the cube as shown in Figure 2. An example of
-how these shadow maps will be drawn is shown in Figure 1.</p>
+<p>They are wrapped around the cube as shown in Figure 2. An example of how these shadow maps will be drawn is shown in Figure 1.</p>
 <figure class="captioned">
 <img src="doc/shadow_cube_faces_and_light_camera_coord_systems.svg">
 <figcaption class="justified">
-Figure 3. (a) Names of the shadow map cube faces used in this
-assignment. (b-d) Example of the light camera coordinate axes oriented
-to render faces 0, 2, and 4, respectively.
+Figure 3. (a) Names of the shadow map cube faces used in this assignment. (b-d) Example of the light camera coordinate axes oriented to render faces 0, 2, and 4, respectively.
 </figcaption>
 </figure>
-<h3 id="building-view-and-projection-matrices-for-a-cube-face">Building
-View and Projection Matrices for a Cube Face</h3>
+<h3 id="building-view-and-projection-matrices-for-a-cube-face">Building View and Projection Matrices for a Cube Face</h3>
 <figure id="fig-gl322" class="captioned">
 <img src="doc/GL322_env_cap.webp">
 <figcaption>
 Reference result for cube-map setup and reflections.
 </figcaption>
 </figure>
-<p>Start by constructing the <code>cube_camera_projection</code> matrix
-in <code>env_capture.js</code>.</p>
-<p>Note that the shadow map cube model assumes the light is positioned
-at the center of the cube. Given such a geometry, think of what aspect
-ratio and field of view properly define the light camera’s view frustum
-as visualized in Figure 1. The near/far parameters control the minimum
-and maximum distances at which you can compute shadow ray intersections.
-For this scene, you can use <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="2.972ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 1279.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-8-Title">
+<p>Start by constructing the <code>cube_camera_projection</code> matrix in <code>env_capture.js</code>.</p>
+<p>Note that the shadow map cube model assumes the light is positioned at the center of the cube. Given such a geometry, think of what aspect ratio and field of view properly define the light camera’s view frustum as visualized in Figure 1. The near/far parameters control the minimum and maximum distances at which you can compute shadow ray intersections. For this scene, you can use <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="2.972ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 1279.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-8-Title">
 <title id="MathJax-SVG-8-Title">0.1</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAIN-30"></use>
  <use xlink:href="#MJMAIN-2E" x="500" y="0"></use>
  <use xlink:href="#MJMAIN-31" x="779" y="0"></use>
 </g>
-</svg></span></span> and
-<span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="3.487ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 1501.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-9-Title">
+</svg></span></span> and <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="3.487ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 1501.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-9-Title">
 <title id="MathJax-SVG-9-Title">200</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAIN-32"></use>
@@ -546,84 +458,44 @@ For this scene, you can use <span class="math inline"><span class="mjpage"><svg 
 </svg></span></span> respectively.</p>
 <section id="task-gl3.2.1-projection-matrix-for-a-cube-camera" class="box task">
 <h4>Task GL3.2.1: Projection matrix for a cube camera</h4>
-<p>Complete the function <code>init_capture</code> in
-<code>env_capture.js</code>. Use <code>mat4.perspective</code> to
-produce the projection matrix for a camera whose center lies at the
-center of a cube and whose image plane is a cube wall. Choose the
-correct field-of-view angle and aspect ratio.</p>
+<p>Complete the function <code>init_capture</code> in <code>env_capture.js</code>. Use <code>mat4.perspective</code> to produce the projection matrix for a camera whose center lies at the center of a cube and whose image plane is a cube wall. Choose the correct field-of-view angle and aspect ratio.</p>
 </section>
-<p>Next, the <code>cube_camera_view</code> function constructs the view
-matrix for the light camera looking through side <code>side_idx</code>
-(in 0..5) of the shadow map cube. This the matrix representing the
-transformation from the world coordinate system to the coordinate system
-for the light camera.</p>
-<p>Note that the orientation of the shadow map cube itself (i.e., the
-shadow map cube coordinate system) must always be aligned with current
-eye coordinate system (see Figure 3 (a))! This will allow you sample the
-cube map texture directly with the light vectors calculated in your
-Phong shader (since your lighting calculation is done in eye space).
-Therefore, the <code>cube_camera_view</code> matrix uses the current
-eye’s view matrix.</p>
-<p>We are also using the function <code>mat4.lookAt</code> to point the
-camera through the specified cube face. See Figure 3 (b-d) for example
-light camera orientations.</p>
-<p>Please set up the <code>up</code> vectors for the <code>lookAt</code>
-function for each face by studying Figure 2.</p>
+<p>Next, the <code>cube_camera_view</code> function constructs the view matrix for the light camera looking through side <code>side_idx</code> (in 0..5) of the shadow map cube. This the matrix representing the transformation from the world coordinate system to the coordinate system for the light camera.</p>
+<p>Note that the orientation of the shadow map cube itself (i.e., the shadow map cube coordinate system) must always be aligned with current eye coordinate system (see Figure 3 (a))! This will allow you sample the cube map texture directly with the light vectors calculated in your Phong shader (since your lighting calculation is done in eye space). Therefore, the <code>cube_camera_view</code> matrix uses the current eye’s view matrix.</p>
+<p>We are also using the function <code>mat4.lookAt</code> to point the camera through the specified cube face. See Figure 3 (b-d) for example light camera orientations.</p>
+<p>Please set up the <code>up</code> vectors for the <code>lookAt</code> function for each face by studying Figure 2.</p>
 <section id="task-gl3.2.2-up-vectors-for-cube-camera" class="box task">
 <h4>Task GL3.2.2: Up vectors for cube camera</h4>
-<p>Edit the up vectors <code>CUBE_FACE_UP</code> in
-<code>env_capture.js</code> to point the camera through the specified
-cube faces. Please check that your scene capture visualization (bottom
-left) matches the reference image.</p>
+<p>Edit the up vectors <code>CUBE_FACE_UP</code> in <code>env_capture.js</code> to point the camera through the specified cube faces. Please check that your scene capture visualization (bottom left) matches the reference image.</p>
 </section>
-<h3 id="reflections-from-environment-capture">Reflections from
-environment capture</h3>
+<h3 id="reflections-from-environment-capture">Reflections from environment capture</h3>
 <figure id="fig-phong-reflection" class="captioned">
 <img src="doc/phong_diagram.png">
 <figcaption>
 Reflected ray direction.
 </figcaption>
 </figure>
-<p>In the previous part we have captures a view from a particular point
-in the scene into a cubemap. Sampling this cube-map allows us to recover
-the light ray coming from that direction. We will use it to implement
-real-time reflections.</p>
-<p>The idea is similar to reflections in assignment RT2. There we could
-run the ray tracer to shoot a ray in any direction. In the rasterization
-pipeline we have to draw whole objects from a fixed viewpoint. Thus the
-environment-map will serve as an approximation of the ability to shoot
-rays.</p>
-<p>The approximation relies on an assumption that the shiny object is
-small compared to the whole scene. We capture the view from the center
-of the object and hope that it is not significantly different from the
-view from the object’s surface.</p>
-<p>Sampling a cube-map is similar to sampling a texture but takes a 3D
-vector instead of 2D UV:</p>
+<p>In the previous part we have captures a view from a particular point in the scene into a cubemap. Sampling this cube-map allows us to recover the light ray coming from that direction. We will use it to implement real-time reflections.</p>
+<p>The idea is similar to reflections in assignment RT2. There we could run the ray tracer to shoot a ray in any direction. In the rasterization pipeline we have to draw whole objects from a fixed viewpoint. Thus the environment-map will serve as an approximation of the ability to shoot rays.</p>
+<p>The approximation relies on an assumption that the shiny object is small compared to the whole scene. We capture the view from the center of the object and hope that it is not significantly different from the view from the object’s surface.</p>
+<p>Sampling a cube-map is similar to sampling a texture but takes a 3D vector instead of 2D UV:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>vec4 result <span class="op">=</span> textureCube<span class="op">(</span>cube_env_map<span class="op">,</span> direction_vec3<span class="op">);</span></span></code></pre></div>
 <section id="task-gl3.2.3-reflection-shader" class="box task">
 <h4>Task GL3.2.3: Reflection shader</h4>
-<p>Edit the reflection shaders <code>mirror.vert.glsl</code> and
-<code>mirror.frag.glsl</code> to implement the environment-map based
-reflections.</p>
+<p>Edit the reflection shaders <code>mirror.vert.glsl</code> and <code>mirror.frag.glsl</code> to implement the environment-map based reflections.</p>
 <ol type="1">
-<li>Pass the view-space normals and viewing-direction from the vertex
-shader to the fragment shader. This is a slight adaptation of your
-solution for GL2. Normalize vectors which ought to be unit vectors.</li>
+<li>Pass the view-space normals and viewing-direction from the vertex shader to the fragment shader. This is a slight adaptation of your solution for GL2. Normalize vectors which ought to be unit vectors.</li>
 <li>Calculate the reflected ray direction <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.102ex" height="1.676ex" style="vertical-align: -0.338ex;" viewBox="0 -576.1 474.5 721.6" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-10-Title">
 <title id="MathJax-SVG-10-Title">\mathbf{r}</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAINB-72" x="0" y="0"></use>
 </g>
-</svg></span></span> in your fragment shader, then
-sample the cube-map to get the color of the reflected ray. Please
-consult assignment RT2 for the discussion on reflections.</li>
+</svg></span></span> in your fragment shader, then sample the cube-map to get the color of the reflected ray. Please consult assignment RT2 for the discussion on reflections.</li>
 </ol>
 </section>
 <h2 id="shadow-mapping">Shadow Mapping</h2>
-<h3 id="review-on-phong-lighting-and-shadows">Review on Phong Lighting
-and Shadows</h3>
-<p>Recall the Phong illumination model you’ve used in the previous
-assignments:</p>
+<h3 id="review-on-phong-lighting-and-shadows">Review on Phong Lighting and Shadows</h3>
+<p>Recall the Phong illumination model you’ve used in the previous assignments:</p>
 <figure id="fig-BlinnPhong" class="captioned">
 <img src="doc/BlinnPhong_diagram.png">
 <figcaption>
@@ -632,16 +504,13 @@ Half vector <span class="math inline"><span class="mjpage"><svg xmlns:xlink="htt
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAINB-68" x="0" y="0"></use>
 </g>
-</svg></span></span> in
-Blinn-Phong lighting model.
+</svg></span></span> in Blinn-Phong lighting model.
 </figcaption>
 </figure>
 <p><span class="math display"><span class="mjpage mjpage__block"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="66.275ex" height="7.676ex" style="vertical-align: -4.005ex;" viewBox="0 -1580.7 28535 3304.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-12-Title">
-<title id="MathJax-SVG-12-Title">\mathbf{I}_{BP} =
-\mathbf{I}_a*\mathbf{m}_a +
+<title id="MathJax-SVG-12-Title">\mathbf{I}_{BP} = \mathbf{I}_a*\mathbf{m}_a + 
 \sum_{\mbox{light}\; l} \left[
-    \mathbf{I}_l*(\mathbf{m}_d.(\mathbf{n}^T\mathbf{l}) +
-\mathbf{m}_s.(\mathbf{h}^T\mathbf{n})^s)
+    \mathbf{I}_l*(\mathbf{m}_d.(\mathbf{n}^T\mathbf{l}) + \mathbf{m}_s.(\mathbf{h}^T\mathbf{n})^s)
     \frac{1}{dist(l, p)^2}
 \right]
 </title>
@@ -740,28 +609,24 @@ Blinn-Phong lighting model.
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMATHI-49" x="0" y="0"></use>
 </g>
-</svg></span></span>, is computed adding specular and
-diffuse contributions from each light, <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="0.693ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 298.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-14-Title">
+</svg></span></span>, is computed adding specular and diffuse contributions from each light, <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="0.693ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 298.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-14-Title">
 <title id="MathJax-SVG-14-Title">l</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMATHI-6C" x="0" y="0"></use>
 </g>
-</svg></span></span>, atop the ambient contribution. Here
-<span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="2.125ex" height="2.509ex" style="vertical-align: -0.671ex;" viewBox="0 -791.3 914.9 1080.4" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-15-Title">
+</svg></span></span>, atop the ambient contribution. Here <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="2.125ex" height="2.509ex" style="vertical-align: -0.671ex;" viewBox="0 -791.3 914.9 1080.4" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-15-Title">
 <title id="MathJax-SVG-15-Title">I_{a}</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMATHI-49" x="0" y="0"></use>
  <use transform="scale(0.707)" xlink:href="#MJMATHI-61" x="622" y="-213"></use>
 </g>
-</svg></span></span> is the ambient light
-intensity, <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.746ex" height="2.509ex" style="vertical-align: -0.671ex;" viewBox="0 -791.3 751.6 1080.4" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-16-Title">
+</svg></span></span> is the ambient light intensity, <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.746ex" height="2.509ex" style="vertical-align: -0.671ex;" viewBox="0 -791.3 751.6 1080.4" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-16-Title">
 <title id="MathJax-SVG-16-Title">I_{l}</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMATHI-49" x="0" y="0"></use>
  <use transform="scale(0.707)" xlink:href="#MJMATHI-6C" x="622" y="-213"></use>
 </g>
-</svg></span></span> is
-diffuse/specular intensity of light source <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="0.693ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 298.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-17-Title">
+</svg></span></span> is diffuse/specular intensity of light source <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="0.693ex" height="2.176ex" style="vertical-align: -0.338ex;" viewBox="0 -791.3 298.5 936.9" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-17-Title">
 <title id="MathJax-SVG-17-Title">l</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMATHI-6C" x="0" y="0"></use>
@@ -780,15 +645,13 @@ diffuse/specular intensity of light source <span class="math inline"><span class
  <use transform="scale(0.707)" xlink:href="#MJMAIN-5D" x="2358" y="0"></use>
 </g>
 </g>
-</svg></span></span> is the
-ambient/diffuse/specular component of the material, <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.09ex" height="1.676ex" style="vertical-align: -0.338ex;" viewBox="0 -576.1 469.5 721.6" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-19-Title">
+</svg></span></span> is the ambient/diffuse/specular component of the material, <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.09ex" height="1.676ex" style="vertical-align: -0.338ex;" viewBox="0 -576.1 469.5 721.6" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-19-Title">
 <title id="MathJax-SVG-19-Title">s</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMATHI-73" x="0" y="0"></use>
 </g>
 </svg></span></span> is the shininess, and <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="8.225ex" height="2.509ex" style="vertical-align: -0.671ex;" viewBox="0 -791.3 3541.5 1080.4" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-20-Title">
-<title id="MathJax-SVG-20-Title">\mathbf{n}, \mathbf{l}, \mathbf{h},
-\mathbf{v}</title>
+<title id="MathJax-SVG-20-Title">\mathbf{n}, \mathbf{l}, \mathbf{h}, \mathbf{v}</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAINB-6E" x="0" y="0"></use>
  <use xlink:href="#MJMAIN-2C" x="639" y="0"></use>
@@ -798,25 +661,15 @@ ambient/diffuse/specular component of the material, <span class="math inline"><s
  <use xlink:href="#MJMAIN-2C" x="2488" y="0"></use>
  <use xlink:href="#MJMAINB-76" x="2934" y="0"></use>
 </g>
-</svg></span></span> are the normal, light, half-vector, and view vectors
-respectively.</p>
-<p><em>In this implementation, we simplify
-<code>m_s = m_d = material_color</code> where the color is sampled from
-a provided texture. We set <code>m_a = 0.1</code>.</em></p>
-<p>Remember that, in the second raytracing assignment, you computed
-shadows by neglecting the contributions from lights that are obscured by
-other scene geometry. To do this, you cast a <strong>shadow ray</strong>
-from the point being lit, ''<span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.485ex" height="2.009ex" style="vertical-align: -0.671ex;" viewBox="0 -576.1 639.5 865.1" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-21-Title">
+</svg></span></span> are the normal, light, half-vector, and view vectors respectively.</p>
+<p><em>In this implementation, we simplify <code>m_s = m_d = material_color</code> where the color is sampled from a provided texture. We set <code>m_a = 0.1</code>.</em></p>
+<p>Remember that, in the second raytracing assignment, you computed shadows by neglecting the contributions from lights that are obscured by other scene geometry. To do this, you cast a <strong>shadow ray</strong> from the point being lit, ''<span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.485ex" height="2.009ex" style="vertical-align: -0.671ex;" viewBox="0 -576.1 639.5 865.1" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-21-Title">
 <title id="MathJax-SVG-21-Title">\mathbf{p}</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAINB-70" x="0" y="0"></use>
 </g>
-</svg></span></span>'', to the light to check if
-there was an intersection between the two.</p>
-<p>An equivalent formulation of this test, which we will see is more
-compatible with the WebGL/regl rasterization pipeline, is to instead
-cast a ray from the light toward the point and check if there is any
-intersection <strong>closer</strong> to the light than <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.485ex" height="2.009ex" style="vertical-align: -0.671ex;" viewBox="0 -576.1 639.5 865.1" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-22-Title">
+</svg></span></span>'', to the light to check if there was an intersection between the two.</p>
+<p>An equivalent formulation of this test, which we will see is more compatible with the WebGL/regl rasterization pipeline, is to instead cast a ray from the light toward the point and check if there is any intersection <strong>closer</strong> to the light than <span class="math inline"><span class="mjpage"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1.485ex" height="2.009ex" style="vertical-align: -0.671ex;" viewBox="0 -576.1 639.5 865.1" role="img" focusable="false" xmlns="http://www.w3.org/2000/svg" aria-labelledby="MathJax-SVG-22-Title">
 <title id="MathJax-SVG-22-Title">{\mathbf{p}}</title>
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAINB-70" x="0" y="0"></use>
@@ -826,19 +679,12 @@ intersection <strong>closer</strong> to the light than <span class="math inline"
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAINB-70" x="0" y="0"></use>
 </g>
-</svg></span></span> is in a shadow, and no
-diffuse or specular components from this light should be added.</p>
+</svg></span></span> is in a shadow, and no diffuse or specular components from this light should be added.</p>
 <figure class="row">
 <img src="doc/shadow_unoccluded.svg" style="width:35.0%"> <img src="doc/shadow_occluded.svg" style="width:35.0%">
 </figure>
-<h2 id="real-time-shadows-with-shadow-mapping">Real-time Shadows with
-Shadow Mapping</h2>
-<p>The nice thing about this new shadow test formulation is that
-determining the first intersection of a whole frustum of rays with a
-scene is exactly the problem GPU rasterization pipeline solves: we can
-simply render the scene from the perspective of the light to determine
-the distance of the closest intersection along every light ray. The
-resulting grayscale image of distance values is called a shadow map:</p>
+<h2 id="real-time-shadows-with-shadow-mapping">Real-time Shadows with Shadow Mapping</h2>
+<p>The nice thing about this new shadow test formulation is that determining the first intersection of a whole frustum of rays with a scene is exactly the problem GPU rasterization pipeline solves: we can simply render the scene from the perspective of the light to determine the distance of the closest intersection along every light ray. The resulting grayscale image of distance values is called a shadow map:</p>
 <figure class="row center">
 <img src="doc/shadow_map_figure_left.png" style="width:35.0%"> <img src="doc/shadow_map_figure_right.png" style="width:35.0%">
 </figure>
@@ -850,18 +696,9 @@ From Akenine-Moller, “Real-Time Rendering.”
 <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="matrix(1 0 0 -1 0 0)" aria-hidden="true">
  <use xlink:href="#MJMAINB-70" x="0" y="0"></use>
 </g>
-</svg></span></span>, we can compare its distance
-from the light against the corresponding ray’s intersection distance
-value stored in this shadow map. This test involves only an efficient,
-constant-time texture look-up operation.</p>
-<p>Shadow mapping implementations traditionally store the depth buffer
-(or <code>z-buffer</code>) value in the shadow map. However, for
-omnidirectional lighting, it will be simpler to instead work with
-<strong>the Euclidean distance from the light to the intersection
-point</strong>. When we switch to the shadow mode, the cubemap
-visualizer shows the shadow map.</p>
-<p>With this approach, we need the following multi-pass rendering
-process:</p>
+</svg></span></span>, we can compare its distance from the light against the corresponding ray’s intersection distance value stored in this shadow map. This test involves only an efficient, constant-time texture look-up operation.</p>
+<p>Shadow mapping implementations traditionally store the depth buffer (or <code>z-buffer</code>) value in the shadow map. However, for omnidirectional lighting, it will be simpler to instead work with <strong>the Euclidean distance from the light to the intersection point</strong>. When we switch to the shadow mode, the cubemap visualizer shows the shadow map.</p>
+<p>With this approach, we need the following multi-pass rendering process:</p>
 <pre><code>for all rasterized framgents p:
     I(p) &lt;- ambient_contribution
 
@@ -940,11 +777,7 @@ Draw shadow map for <span class="katex"><span class="katex-mathml"><math xmlns="
 </div>
 </div> -->
 <!-- `src/shaders/ambient_color.frag.glsl` and -->
-<p>In our implementation, the loops over rasterized fragments will be
-executed by the fragment shader
-<code>src/shaders/phong_shadow.frag.glsl</code>. The shadow map distance
-values are written by
-<code>..src/shaders/shadowmap_gen.frag.glsl</code>.</p>
+<p>In our implementation, the loops over rasterized fragments will be executed by the fragment shader <code>src/shaders/phong_shadow.frag.glsl</code>. The shadow map distance values are written by <code>..src/shaders/shadowmap_gen.frag.glsl</code>.</p>
 <h3 id="shaders-and-blend-options">Shaders and Blend Options</h3>
 <!-- ### TASK 6.2.1: Light Depth Fragment Shader
 In `src/shaders/shadowmap_gen.frag.glsl`, finish the todo item `6.2.1`, calculating the fragment distance.
@@ -961,43 +794,19 @@ shadow maps:
 ---------------- -->
 <section id="task-gl3.3.1-phong-lighting-shader-with-shadows" class="box task">
 <h4>Task GL3.3.1: Phong Lighting Shader with Shadows</h4>
-<p>Edit <code>shaders/phong_shadow.vert.glsl</code> and
-<code>shaders/phong_shadow.frag.glsl</code> to implement Phong lighting
-with shadows. It is quite similar to the Blinn-Phong shader from GL2 but
-with several differences:</p>
+<p>Edit <code>shaders/phong_shadow.vert.glsl</code> and <code>shaders/phong_shadow.frag.glsl</code> to implement Phong lighting with shadows. It is quite similar to the Blinn-Phong shader from GL2 but with several differences:</p>
 <ul>
-<li>We pass the <em>fragment position in camera space</em>
-(<code>mat_model_view * vpos</code>) to the fragment shader. We will use
-it in the fragment shader to calculate the <em>view direction</em>,
-<em>lighting direction</em>, and <em>distance between fragment and
-light</em>. Therefore we no longer need to pass view and lighting
-directions to the fragment shader.</li>
-<li>To simulate the attenuation of light emitted from a point source
-over distance, please scale the light color by the inverse squared
-distance from the light to the fragment. Note that the given
-<code>light_color</code>s have high values to account for the
-attenuation. Without the attenuation implemented, your image will be
-oversaturated.</li>
-<li>Use the <code>cube_shadowmap</code> shadow map to test whether the
-fragment is under shadow; your shader should only output a nonzero color
-if the light is visible from the fragment. You can use the GLSL function
-<code>textureCube</code> to sample the cube map texture using a vector.
-Mitigations against shadow acne might be needed.</li>
+<li>We pass the <em>fragment position in camera space</em> (<code>mat_model_view * vpos</code>) to the fragment shader. We will use it in the fragment shader to calculate the <em>view direction</em>, <em>lighting direction</em>, and <em>distance between fragment and light</em>. Therefore we no longer need to pass view and lighting directions to the fragment shader.</li>
+<li>To simulate the attenuation of light emitted from a point source over distance, please scale the light color by the inverse squared distance from the light to the fragment. Note that the given <code>light_color</code>s have high values to account for the attenuation. Without the attenuation implemented, your image will be oversaturated.</li>
+<li>Use the <code>cube_shadowmap</code> shadow map to test whether the fragment is under shadow; your shader should only output a nonzero color if the light is visible from the fragment. You can use the GLSL function <code>textureCube</code> to sample the cube map texture using a vector. Mitigations against shadow acne might be needed.</li>
 </ul>
 </section>
-<h3 id="adding-the-light-contributions">Adding the light
-contributions</h3>
+<h3 id="adding-the-light-contributions">Adding the light contributions</h3>
 <section id="task-gl3.3.2-blend-options" class="box task">
 <h4>Task GL3.3.2 Blend Options</h4>
-<p>In <code>mesh_render.js</code>,
-<code>SysRenderMeshesWithLight::init_pipeline</code> set the blending
-mode of the pipeline.</p>
+<p>In <code>mesh_render.js</code>, <code>SysRenderMeshesWithLight::init_pipeline</code> set the blending mode of the pipeline.</p>
 </section>
-<p>We need each iteration of our loop over the lights to
-<strong>add</strong> to the current image, not overwrite it. This can be
-accomplished by enabling blending and appropriately configuring the
-blend function. You will want to change the <code>blend</code> field to
-look like:</p>
+<p>We need each iteration of our loop over the lights to <strong>add</strong> to the current image, not overwrite it. This can be accomplished by enabling blending and appropriately configuring the blend function. You will want to change the <code>blend</code> field to look like:</p>
 <pre><code>        blend: {
             enable: true,
             func: {
@@ -1005,15 +814,8 @@ look like:</p>
                 dst: dfactor,
             },
         },</code></pre>
-<p>which corresponds to a call to the OpenGL function
-<code>glBlendFunc(sfactor, defactor)</code>. To determine the correct
-arguments to pass as <code>sfactor</code> and <code>dfactor</code>,
-please study the <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml">OpenGL
-reference page</a> and think about how to make the blend operation
-<em>add</em> the source and destination values. You may also find it
-useful to read the <code>regl</code> documentation on blending <a href="http://regl.party/api#blending">here</a>.</p>
-<p>Now, with this last task finished, you should see the following
-result:</p>
+<p>which corresponds to a call to the OpenGL function <code>glBlendFunc(sfactor, defactor)</code>. To determine the correct arguments to pass as <code>sfactor</code> and <code>dfactor</code>, please study the <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml">OpenGL reference page</a> and think about how to make the blend operation <em>add</em> the source and destination values. You may also find it useful to read the <code>regl</code> documentation on blending <a href="http://regl.party/api#blending">here</a>.</p>
+<p>Now, with this last task finished, you should see the following result:</p>
 <figure id="fig-gl331" class="captioned">
 <img src="doc/GL33_view1.webp">
 <figcaption>
@@ -1022,27 +824,18 @@ Result of shadow implementation.
 </figure>
 <!-- ![Preset view on a correctly completed implementation.](doc/ground_truth_final.jpg){ width=75% } -->
 <h2 id="what-to-submit">What to submit</h2>
-<p>A .zip compressed file named <code>ExerciseGL3-GroupG.zip</code>,
-where <em>N</em> is the number of the current exercise sheet, and
-<em>G</em> is the number of your group. It should contain:</p>
+<p>A .zip compressed file named <code>ExerciseGL3-GroupG.zip</code>, where <em>N</em> is the number of the current exercise sheet, and <em>G</em> is the number of your group. It should contain:</p>
 <ul>
 <li>Your source files.</li>
-<li>A couple of screenshots clearly showing that you can render the
-proper shadows from multiple viewpoints.</li>
-<li>Please report individual contributions in your
-<code>readme.txt</code> file, following this scheme (sciper in
-parentheses):<br>
+<li>A couple of screenshots clearly showing that you can render the proper shadows from multiple viewpoints.</li>
+<li>Please report individual contributions in your <code>readme.txt</code> file, following this scheme (sciper in parentheses):<br>
 Name1 Surname1 (000001): 1/3<br>
 Name2 Surname2 (000002): 1/3<br>
 Name3 Surname3 (000003): 1/3<br>
-We ask you to only report global contributions, there is no need to
-provide additional details for each sub-task. The three contributions
-should add up to 1.</li>
-<li>Please put your submission in a <code>.zip</code> archive, no
-<code>.rar</code> please.</li>
+We ask you to only report global contributions, there is no need to provide additional details for each sub-task. The three contributions should add up to 1.</li>
+<li>Please put your submission in a <code>.zip</code> archive, no <code>.rar</code> please.</li>
 </ul>
-<p>Submit solutions to Moodle before the deadline. Late submissions
-receive 0 points!</p>
+<p>Submit solutions to Moodle before the deadline. Late submissions receive 0 points!</p>
 <!-- <div class="box grade"> -->
 
  
