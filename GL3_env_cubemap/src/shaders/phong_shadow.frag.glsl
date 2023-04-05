@@ -61,9 +61,9 @@ void main() {
     float diffuse = (0.);
     float specular = (0.);
 
-    vec3 shadow_value = textureCube(cube_shadowmap, -l).xyz / sqrt(2.8);
+    float shadow_value = textureCube(cube_shadowmap, -l).r;
 
-    if (length(shadow_value) >= length(light_position - x) * 1.01) {
+    if (length(shadow_value * 1.01) >= length(light_position - x)) {
         if (dot(normalize(n), l) > 0.) {
             diffuse = dot(normalize(n), l);
 
@@ -73,6 +73,6 @@ void main() {
         }
     }    
 
-    color = (ma + color * (specular + diffuse)) * material_color;
+    color = (color * (specular + diffuse)) * material_color;
 	gl_FragColor = vec4(color, 1.); // output: RGBA in 0..1 range
 }
