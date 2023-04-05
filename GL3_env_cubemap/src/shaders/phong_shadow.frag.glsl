@@ -1,7 +1,7 @@
 precision highp float;
 
-//varying ...
-//varying ...
+varying vec3 x;
+varying vec3 n;
 varying vec2 v2f_uv;
 
 
@@ -18,6 +18,8 @@ void main() {
 	Sample texture tex_color at UV coordinates and display the resulting color.
 	*/
 	vec3 material_color = vec3(v2f_uv, 0.);
+
+    material_color = texture2D(tex_color, v2f_uv).xyz;
 	
 	/*
 	#TODO GL3.3.1: Blinn-Phong with shadows and attenuation
@@ -48,6 +50,29 @@ void main() {
 
 	Make sure to normalize values which may have been affected by interpolation!
 	*/
-	vec3 color = light_color * material_color;
+	vec3 color = light_color / dot(light_position - x, light_position - x);
+
+    vec3 ma = vec3(0.1);
+    
+    vec3 v = normalize(-x);
+    vec3 l = normalize(light_position - x);
+    vec3 h = normalize(l + v);
+
+    float diffuse = (0.);
+    float specular = (0.);
+
+    vec3 shadow_value = textureCube(cube_shadowmap, -l).xyz / sqrt(2.8);
+
+    if (length(shadow_value) >= length(light_position - x) * 1.01) {
+        if (dot(normalize(n), l) > 0.) {
+            diffuse = dot(normalize(n), l);
+
+            if (dot(h, n) > 0.) {
+                specular = pow(dot(h, normalize(n)), material_shininess);
+            }
+        }
+    }    
+
+    color = (ma + color * (specular + diffuse)) * material_color;
 	gl_FragColor = vec4(color, 1.); // output: RGBA in 0..1 range
 }

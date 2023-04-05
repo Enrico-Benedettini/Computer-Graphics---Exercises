@@ -5,8 +5,8 @@ precision mediump float;
 	* surface normal
 	* view vector: direction to camera
 */
-//varying ...
-//varying ...
+varying vec3 n;
+varying vec3 v;
 
 uniform samplerCube cube_env_map;
 
@@ -17,6 +17,12 @@ void main()
 	Calculate the reflected ray direction R and use it to sample the environment map.
 	Pass the resulting color as output.
 	*/
-	vec3 color = vec3(0., 0.5, 0.);
-	gl_FragColor = vec4(color, 1.); // output: RGBA in 0..1 range
+    
+	// gl_FragColor = vec4(color, 1.); // output: RGBA in 0..1 range
+
+    vec3 p = dot(n, v) * n;
+    vec3 b = -v + p;
+    vec3 refl = b + p;
+
+    gl_FragColor = textureCube(cube_env_map, refl);
 }
