@@ -36,6 +36,6 @@ void main()
     v = vec3(0., 0., 1.);
     l = normalize(light_position.xyz - x);
     h = normalize(l + v);
-	
+    
 	gl_Position = mat_mvp * position_v4;
 }

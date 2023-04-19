@@ -84,6 +84,7 @@ async function main() {
 		resources[key] = await resources[key]
 	}
 
+
 	/*---------------------------------------------------------------
 		Camera
 	---------------------------------------------------------------*/
@@ -96,28 +97,30 @@ async function main() {
 
 	let cam_target = [0, 0, 0]
 
-    function update_cam_transform() {
-    
-        const frame_info = {
-	    	sim_time: 0.,
+	function update_cam_transform() {
+		/* #TODO PG1.0 Copy camera controls
+		* Copy your solution to Task 2.2 of assignment 5.
+		Calculate the world-to-camera transformation matrix.
+		The camera orbits the scene
+		* cam_distance_base * cam_distance_factor = distance of the camera from the (0, 0, 0) point
+		* cam_angle_z - camera ray's angle around the Z axis
+		* cam_angle_y - camera ray's angle around the Y axis
 
-	    	cam_angle_z: Math.PI * 0.2, // in radians!
-	    	cam_angle_y: -Math.PI / 6, // in radians!
-	    	cam_distance_factor: 1.,
-	    	camera_position: [0, 0, 0],
-	    	mat_turntable: mat4.create(),
-
-	    	mat_view: mat4.create(),
-	    	mat_projection: mat4.create(),
-	    }
-
-		const {cam_angle_z, cam_angle_y, cam_distance_factor} = frame_info
-
-		/* TODO GL3.0
-		Copy turntable camera from GL2
+		* cam_target - the point we orbit around
 		*/
+        /*
 
-		const r = [
+		// Example camera matrix, looking along forward-X, edit this
+		const look_at = mat4.lookAt(mat4.create(),
+			[-5, 0, 0], // camera position in world coord
+			[0, 0, 0], // view target point
+			[0, 0, 1], // up vector
+		)
+		// Store the combined transform in mat_turntable
+		// mat_turntable = A * B * ...
+		mat4_matmul_many(mat_turntable, look_at) // edit this
+        */
+        const r = [
             -Math.cos(cam_angle_y) * Math.cos(cam_angle_z) * cam_distance_factor * cam_distance_base , 
             Math.cos(cam_angle_y) * Math.sin(cam_angle_z) * cam_distance_factor * cam_distance_base, 
             -Math.sin(cam_angle_y) * cam_distance_factor * cam_distance_base];
@@ -128,9 +131,11 @@ async function main() {
 			[0, 0, 0], // view target point
 			[0, 0, Math.abs(cam_angle_y) % (Math.PI * 2) % (Math.PI * 3 / 2) > Math.PI / 2 ? -1 : 1], // up vector
 		)
+
+
 		// Store the combined transform in mat_turntable
 		// frame_info.mat_turntable = A * B * ...
-		mat4_matmul_many(frame_info.mat_turntable, look_at) // edit this
+		mat4_matmul_many(mat_turntable, look_at) // edit this
 	}
 
 	update_cam_transform()

@@ -33,8 +33,16 @@ void main()
 			color = interpolate between terrain_color_grass and terrain_color_mountain, weight is (height - terrain_water_level)*2
 	 		shininess = 2.
 	*/
-	vec3 material_color = terrain_color_grass;
-	float shininess = 0.5;
+	vec3 material_color = vec3(0.);
+    float shininess = 0.;
+    if (v2f_height < terrain_water_level) {
+        material_color = terrain_color_water;
+        shininess = 30.;
+    }
+    else {
+        material_color = mix(terrain_color_grass, terrain_color_mountain, v2f_height - terrain_water_level);
+        shininess = 2.;
+    }
 
 	/* #TODO PG1.6.1: apply the Blinn-Phong lighting model
     	Implement the Phong shading model by using the passed variables and write the resulting color to `color`.
@@ -42,21 +50,19 @@ void main()
     	Hints:
 	*/
     
-
     float diffuse = (0.);
     float specular = (0.);
     if (dot(n, l) > 0.) {
-        diffuse = dot(n, l);
+        diffuse = dot(normalize(n), normalize(l));
 
         if (dot(h, n) > 0.) {
-            specular = pow(dot(h, n), shininess);
+            specular = pow(dot(normalize(h), normalize(n)), shininess);
         }
     }
 
-    vec3 ma = material_color * ambient;
+    vec3 ma = material_color * ambient * light_color;
 
-	vec3 color = material_color * light_color;
-    color = ma + light_color * (specular + diffuse) * material_color;
-
+    vec3 color = ma + light_color * (specular + diffuse) * material_color;
+    
 	gl_FragColor = vec4(color, 1.); // output: RGBA in 0..1 range
 }
