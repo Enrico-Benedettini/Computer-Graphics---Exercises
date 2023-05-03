@@ -175,7 +175,7 @@ async function main() {
 		const factor_mul_base = 1.08
 		const factor_mul = (event.deltaY > 0) ? factor_mul_base : 1./factor_mul_base
 		frame_info.cam_distance_factor *= factor_mul
-		frame_info.cam_distance_factor = Math.max(0.02, Math.min(frame_info.cam_distance_factor, 4))
+		frame_info.cam_distance_factor = Math.max(0.02, Math.min(frame_info.cam_distance_factor, 8))
 		// console.log('wheel', event.deltaY, event.deltaMode);
 		update_cam_transform(frame_info)
 	})
@@ -208,7 +208,7 @@ async function main() {
 		update_cam_transform(frame_info)
 	}
 
-	set_selected_planet('earth');
+	set_selected_planet('sun');
 
 	for (const name in scene_info.actors_by_name) {
 		if (scene_info.actors_by_name.hasOwnProperty(name)) {
@@ -291,7 +291,7 @@ async function main() {
 				deg_to_rad * 60, // fov y
 				frame.framebufferWidth / frame.framebufferHeight, // aspect ratio
 				0.01, // near
-				100, // far
+				1000, // far
 			)
 
 			const selected_planet_model_mat = scene_info.actors_by_name[selected_planet_name].mat_model_to_world
@@ -327,7 +327,7 @@ async function main() {
 		sys_render_unshaded.render(frame_info, scene_info)
 
 		if ( grid_on ) {
-			sys_render_grid.render(frame_info, scene_info)
+			// sys_render_grid.render(frame_info, scene_info)
 		}
 
 
