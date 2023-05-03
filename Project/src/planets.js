@@ -3,8 +3,10 @@ import { mat4_matmul_many } from "./icg_math.js"
 
 import { mulberry32 } from './utils.js'
 
+import { Hexasphere } from '../lib/hexasphere/src/hexasphere.js'
+
 const MIN_PLANET_COUNT = 4;
-const MAX_PLANET_COUNT = 20;
+const MAX_PLANET_COUNT = 15;
 
 
 
@@ -25,9 +27,9 @@ function generate_solar_system(seed) {
         planet_distance += planet_size * 3 + rand(10, 20) / 15.;
 
         planets.push({
-            name: 'earth' + rand(),
+            name: 'planet' + i,
             size: planet_size,
-            rotation_speed: rand(1, 100) / 500 / Math.sqrt(planet_size) * 
+            rotation_speed: rand(1, 100) / 500 / Math.sqrt(planet_size) *
                 Math.sqrt(planet_distance) * self_rotation_dir,
 
             movement_type: 'planet',
@@ -46,17 +48,58 @@ function generate_solar_system(seed) {
     console.log("planet_count: ", planet_count);
     console.log("Planets: ", planets);
 
-    return planets
+    return planets;
+}
+
+
+
+export function generate_planet_mesh(planet) {
+    if (typeof planet !== 'object' || planet.length != undefined) {
+        return;
+    }
+
+    let vertices = [];
+    let faces = [];
+
+    const sphere = new Hexasphere(planet.size / 2, 10, 0.9);
+
+    for (const tile of sphere.tiles) {
+
+        for (const face of tile.faces) {
+            const vertIdx = vertices.length;
+
+            vertices.push([
+                Number(face.points[0].x),
+                Number(face.points[0].y),
+                Number(face.points[0].z)
+            ]);
+
+            vertices.push([
+                Number(face.points[1].x),
+                Number(face.points[1].y),
+                Number(face.points[1].z)
+            ]);
+
+            vertices.push([
+                Number(face.points[2].x),
+                Number(face.points[2].y),
+                Number(face.points[2].z)
+            ]);
+
+            faces.push([vertIdx, vertIdx + 1, vertIdx + 2])
+        }
+    }
+
+    planet.mesh = { vertices, faces };
 }
 
 /*
     Construct the scene!
 */
 export function create_scene_content() {
+    const planets = generate_solar_system(12);
 
-    generate_solar_system(10);
-
-    let actors = [
+    const actors = [
         {
             name: 'sun',
             size: 2.5,
@@ -67,54 +110,12 @@ export function create_scene_content() {
 
             shader_type: 'unshaded',
             texture_name: 'sun.jpg',
-        },/*
-        {
-            name: 'earth',
-            size: 1.0,
-            rotation_speed: 0.3,
+        }
+    ].concat(planets)
 
-            movement_type: 'planet',
-            orbit: 'sun',
-            orbit_radius: 6,
-            orbit_speed: 0.05,
-            orbit_phase: 1.7,
-
-            shader_type: 'unshaded',
-            texture_name: 'earth_day.jpg',
-        },
-        {
-            name: 'moon',
-            size: 0.25,
-            rotation_speed: 0.3,
-
-            movement_type: 'planet',
-            orbit: 'earth',
-            orbit_radius: 2.5,
-            orbit_speed: 0.4,
-            orbit_phase: 0.5,
-
-            shader_type: 'unshaded',
-            texture_name: 'moon.jpg',
-
-        },
-        {
-            name: 'mars',
-            size: 0.75,
-            rotation_speed: 0.7,
-
-            movement_type: 'planet',
-            orbit: 'sun',
-            orbit_radius: 10.0,
-            orbit_speed: 0.1,
-            orbit_phase: 0.1,
-
-            shader_type: 'unshaded',
-            texture_name: 'mars.jpg',
-        }*/
-    ].concat(generate_solar_system(12))
-
-    console.log(actors)
-    actors = actors.filter(x => x)
+    for (const planet of actors) {
+        generate_planet_mesh(planet);
+    }
 
     // In each planet, allocate its transformation matrix
     for (const actor of actors) {
@@ -193,16 +194,19 @@ export class SysOrbitalMovement {
 export class SysRenderPlanetsUnshaded {
 
     constructor(regl, resources) {
+        // Keep a reference to textures
+        this.resources = resources
 
-        const mesh_uvsphere = resources.mesh_uvsphere
+        const mesh_uvsphere = this.resources.mesh_uvsphere
 
         this.pipeline = regl({
             attributes: {
-                position: mesh_uvsphere.vertex_positions,
+                position: regl.prop('mesh.vertices'),
+                // position: mesh_uvsphere.vertex_positions,
                 tex_coord: mesh_uvsphere.vertex_tex_coords,
             },
             // Faces, as triplets of vertex indices
-            elements: mesh_uvsphere.faces,
+            elements: regl.prop('mesh.faces'),
 
             // Uniforms: global data available to the shader
             uniforms: {
@@ -213,9 +217,6 @@ export class SysRenderPlanetsUnshaded {
             vert: resources['unshaded.vert.glsl'],
             frag: resources['unshaded.frag.glsl'],
         })
-
-        // Keep a reference to textures
-        this.resources = resources
     }
 
     render(frame_info, scene_info) {
@@ -242,6 +243,7 @@ export class SysRenderPlanetsUnshaded {
                 mat4_matmul_many(mat_mvp, mat_projection, mat_view, actor.mat_model_to_world);
 
                 entries_to_draw.push({
+                    mesh: actor.mesh,
                     mat_mvp: mat_mvp,
                     tex_base_color: this.resources[actor.texture_name],
                 })
