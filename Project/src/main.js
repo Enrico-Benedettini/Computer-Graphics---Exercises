@@ -44,6 +44,8 @@ async function load_resources(regl) {
         'unshaded.vert.glsl', 'unshaded.frag.glsl',
         'phong.vert.glsl', 'phong.frag.glsl',
         'earth.frag.glsl', 'sun.vert.glsl',
+        'sun.frag.glsl',
+        'planet.frag.glsl', 'planet.vert.glsl',
         'billboard.vert.glsl', 'billboard_sunglow.frag.glsl',
     ]
     for (const shader_name of shaders_to_load) {
@@ -96,8 +98,6 @@ async function main() {
     const sys_render_unshaded = new SysRenderPlanetsUnshaded(regl, resources)
 
     const sys_render_grid = new SystemRenderGrid(regl, resources)
-
-
 
     /*---------------------------------------------------------------
         Frame info
@@ -252,9 +252,9 @@ async function main() {
         prev_regl_time = frame.time;
 
 
+
         // Update planet transforms
         sys_orbital_movement.simulate(scene_info)
-
 
         // Calculate view matrix, view centered on chosen planet
         {
@@ -262,7 +262,7 @@ async function main() {
                 deg_to_rad * 60, // fov y
                 frame.framebufferWidth / frame.framebufferHeight, // aspect ratio
                 0.01, // near
-                1000, // far
+                200, // far
             )
 
             const selected_planet_model_mat = scene_info.actors_by_name[selected_planet_name].mat_model_to_world
@@ -293,7 +293,7 @@ async function main() {
         }
 
         // Set the whole image to black
-        regl.clear({ color: [0, 0, 0, 1] });
+        regl.clear({ color: [0.1, 0.1, 0.1, 1] });
 
         sys_render_unshaded.render(frame_info, scene_info)
 

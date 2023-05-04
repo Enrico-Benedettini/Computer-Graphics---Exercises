@@ -64,6 +64,7 @@ export class SystemRenderGrid {
 			// Uniforms: global data available to the shader
 			uniforms: {
 				mat_mvp: regl.prop('mat_mvp'),
+				mat_normals: regl.prop('mat_normals'),
 			},	
 		})
 		

@@ -5,8 +5,8 @@ import { mulberry32 } from './utils.js'
 
 import { Hexasphere } from '../lib/hexasphere/src/hexasphere.js'
 
-const MIN_PLANET_COUNT = 4;
-const MAX_PLANET_COUNT = 15;
+const MIN_PLANET_COUNT = 1;
+const MAX_PLANET_COUNT = 20;
 
 
 
@@ -60,37 +60,41 @@ export function generate_planet_mesh(planet) {
 
     let vertices = [];
     let faces = [];
+    let normals = [];
 
-    const sphere = new Hexasphere(planet.size / 2, 10, 0.9);
+    const sphere = new Hexasphere(planet.size / 2, 4, 0.9);
 
     for (const tile of sphere.tiles) {
-
+        const tileNormal = [tile.normal.x, tile.normal.y, tile.normal.z]
         for (const face of tile.faces) {
             const vertIdx = vertices.length;
 
-            vertices.push([
+            const v1 = [
                 Number(face.points[0].x),
                 Number(face.points[0].y),
                 Number(face.points[0].z)
-            ]);
+            ];
 
-            vertices.push([
+            const v2 = [
                 Number(face.points[1].x),
                 Number(face.points[1].y),
                 Number(face.points[1].z)
-            ]);
+            ];
 
-            vertices.push([
+            const v3 = [
                 Number(face.points[2].x),
                 Number(face.points[2].y),
                 Number(face.points[2].z)
-            ]);
+            ];
+
+            vertices.push(v1, v2, v3);
+            normals.push(v1, v2, v3);
 
             faces.push([vertIdx, vertIdx + 1, vertIdx + 2])
         }
     }
 
-    planet.mesh = { vertices, faces };
+    planet.mesh = { vertices, faces, normals };
 }
 
 /*
@@ -119,7 +123,6 @@ export function create_scene_content() {
 
     // In each planet, allocate its transformation matrix
     for (const actor of actors) {
-        if (!actor) { console.log(actor) }
         actor.mat_model_to_world = mat4.create()
     }
 
@@ -195,27 +198,30 @@ export class SysRenderPlanetsUnshaded {
 
     constructor(regl, resources) {
         // Keep a reference to textures
-        this.resources = resources
-
-        const mesh_uvsphere = this.resources.mesh_uvsphere
+        this.resources = resources;
 
         this.pipeline = regl({
             attributes: {
+                normal: regl.prop('mesh.normals'),
                 position: regl.prop('mesh.vertices'),
                 // position: mesh_uvsphere.vertex_positions,
-                tex_coord: mesh_uvsphere.vertex_tex_coords,
+                // tex_coord: mesh_uvsphere.vertex_tex_coords,
             },
+
             // Faces, as triplets of vertex indices
             elements: regl.prop('mesh.faces'),
 
             // Uniforms: global data available to the shader
             uniforms: {
+                light_position_cam: regl.prop('light_position_cam'),
                 mat_mvp: regl.prop('mat_mvp'),
-                texture_base_color: regl.prop('tex_base_color'),
+                mat_normals: regl.prop('mat_normals'),
+                planet_center: regl.prop('planet_center'),
+                mat_model_view: regl.prop('mat_model_view'),
             },
 
-            vert: resources['unshaded.vert.glsl'],
-            frag: resources['unshaded.frag.glsl'],
+            vert: regl.prop('vert'),
+            frag: regl.prop('frag'),
         })
     }
 
@@ -228,25 +234,48 @@ export class SysRenderPlanetsUnshaded {
         const entries_to_draw = []
 
         // Read frame info
-        const { mat_projection, mat_view } = frame_info
+        const { mat_projection, mat_view, light_position_cam } = frame_info
 
         // For each planet, construct information needed to draw it using the pipeline
         for (const actor of scene_info.actors) {
 
             // Choose only planet using this shader
             if (actor.shader_type === 'unshaded') {
-
+                
+                const mat_model_view = mat4.create()
                 const mat_mvp = mat4.create()
+                const mat_normals_to_view = mat3.create()
 
-                // #TODO GL1.2.1.2
-                // Calculate mat_mvp: model-view-projection matrix	
-                mat4_matmul_many(mat_mvp, mat_projection, mat_view, actor.mat_model_to_world);
+                const tmp = mat3.create();
+
+                mat3.identity(mat_normals_to_view)
+                
+                mat4_matmul_many(mat_model_view, mat_view, actor.mat_model_to_world)
+                mat4_matmul_many(mat_mvp, mat_projection, mat_model_view);
+                
+                mat3.fromMat4(mat_normals_to_view, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), mat_model_view)));
+
+                
+                mat4_matmul_many(tmp, mat_projection, mat_view)
+		        // Calculate light position in camera frame
+		        //vec3.transformMat4(light_position_cam, [0,0,0], tmp)
+
+                const shaders = actor.name === 'sun' ? { 
+                    vert: this.resources['sun.vert.glsl'],
+                    frag: this.resources['sun.frag.glsl'],
+                } : {
+                    vert: this.resources['planet.vert.glsl'],
+                    frag: this.resources['planet.frag.glsl'],
+                }
 
                 entries_to_draw.push({
                     mesh: actor.mesh,
+                    light_position_cam,
+                    mat_model_view,
                     mat_mvp: mat_mvp,
-                    tex_base_color: this.resources[actor.texture_name],
-                })
+                    mat_normals: mat_normals_to_view,
+                    ...shaders
+                });
             }
         }
 
