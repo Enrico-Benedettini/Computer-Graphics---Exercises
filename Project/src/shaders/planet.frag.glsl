@@ -9,7 +9,7 @@ varying float height;
 
 uniform vec4 light_position_cam;
 
-const float ambient = 0.05;
+const float ambient = 0.2;
 const float shininess = 0.2;
 
 float compute_diffuse() 
@@ -37,29 +37,25 @@ float compute_specular()
     return 0.;
 }
 
-const vec3 water = vec3(0.1, 0.3, 1.);
-const vec3 sand = vec3(194. / 255., 178. / 255., 128. / 255.);
-const vec3 grass = vec3(0.2,1.,0.2);
-const vec3 mountain = vec3(0.588, 0.3, 0.);
+// const vec3 water = vec3(0.1, 0.3, 1.);
+const vec3 water = vec3(0.004, .588, 1.);
+const vec3 sand = vec3(0.76, 0.76, .2);
+const vec3 grass = vec3(	.016, .776, .306);
+const vec3 mountain = vec3(0.592, 0.486,  0.325);
 
 vec3 material_for_height()
 {
-    if (height < 1.)
+    if (height <= 0.)
     {
         return water;
     }
 
-    if (height < 1.03)
-    {
-        return mix(water, sand, (height - 1.) / 0.03);
-    }
+    //if (height < .08)
+    //{
+    //    return mix(sand, grass, (height) / 0.08);
+    //}
 
-    if (height < 1.1)
-    {
-        return mix(sand, grass, (height - 1.03) / 0.07);
-    }
-
-    return mix(grass, mountain, (height - 1.1) / 0.2);
+    return mix(grass, mountain, (height) * 10.);
 }
 
 void main()

@@ -22,7 +22,7 @@ function generate_solar_system(seed) {
     let planet_distance = 2.5;
 
     for (let i = 0; i < planet_count; ++i) {
-        const planet_size = rand(5, 40) / 4.;
+        const planet_size = rand(10, 40) / 4.;
 
         planet_distance += planet_size * 4.5 + rand(10, 20) / 15.;
 
@@ -51,38 +51,23 @@ function generate_solar_system(seed) {
 }
 
 
-function are_faces_equal(face1, face2) {
-    let matchCount = 0;
-    for (const p1 of face1.points) {
-        for (const p2 of face2.points) {
-            if (p1.x === p2.x && p1.y === p2.y && p1.z === p2.z) {
-                matchCount++;
-                if (matchCount >= 3) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-
 export function generate_planet_mesh(planet) {
     if (typeof planet !== 'object' || planet.length != undefined) {
         return;
     }
 
-    let vertices = [];
-    let faces = [];
-    let normals = [];
+    const vertices = [];
+    const faces = [];
+    const normals = [];
+    const noises = [];
 
-    const sphere = new Hexasphere(planet.size / 3., 10, 1.);
+    const sphere = new Hexasphere(planet.size / 3., Math.ceil(planet.size * 2.5), 1.);
 
-    const noise_speed = 1.1;
+    const noise_speed = 0.8;
 
     for (const tile of sphere.tiles) {
 
-        const tileNoise = Math.max(0, noise.perlin3(
+        let tileNoise = Math.max(0, noise.perlin3(
             tile.centerPoint.x * noise_speed, 
             tile.centerPoint.y * noise_speed, 
             tile.centerPoint.z * noise_speed
@@ -102,12 +87,25 @@ export function generate_planet_mesh(planet) {
 
         // Top tiles
         for (const boundary of tile.boundary) {
-            normals.push([tile.centerPoint.x, tile.centerPoint.y, tile.centerPoint.z]);
             vertices.push([
                 Number(boundary.x) + additionalHeight[0], 
                 Number(boundary.y) + additionalHeight[1], 
                 Number(boundary.z) + additionalHeight[2],
             ])
+            normals.push(tileNoise > 0. ? [tile.centerPoint.x, tile.centerPoint.y, tile.centerPoint.z] : vertices[vertices.length - 1]);
+            noises.push(tileNoise);
+        }
+
+        // Top tiles
+        faces.push([0,1,2].map(x => x + vertIdx))
+        faces.push([0,2,3].map(x => x + vertIdx))
+        faces.push([0,3,4].map(x => x + vertIdx))
+        if (faceCount > 5) {
+            faces.push([0,4,5].map(x => x + vertIdx))
+        }
+
+        if (tileNoise <= 0.) {
+            continue;
         }
 
         // Borders
@@ -118,14 +116,7 @@ export function generate_planet_mesh(planet) {
                 Number(boundary.y), 
                 Number(boundary.z),
             ])
-        }
-
-        // Top tiles
-        faces.push([0,1,2].map(x => x + vertIdx))
-        faces.push([0,2,3].map(x => x + vertIdx))
-        faces.push([0,3,4].map(x => x + vertIdx))
-        if (faceCount > 5) {
-            faces.push([0,4,5].map(x => x + vertIdx))
+            noises.push(tileNoise);
         }
 
         // borders
@@ -154,7 +145,7 @@ export function generate_planet_mesh(planet) {
         }
     }
 
-    planet.mesh = { vertices, faces, normals };
+    planet.mesh = { vertices, faces, normals, noise: noises };
 }
 
 /*
@@ -166,7 +157,7 @@ export function create_scene_content(seed) {
     const actors = [
         {
             name: 'sun',
-            size: 2.5,
+            size: 4.5,
             rotation_speed: 0.1,
 
             movement_type: 'planet',
@@ -264,6 +255,7 @@ export class SysRenderPlanetsUnshaded {
             attributes: {
                 normal: regl.prop('mesh.normals'),
                 position: regl.prop('mesh.vertices'),
+                noise: regl.prop('mesh.noise'),
                 // position: mesh_uvsphere.vertex_positions,
                 // tex_coord: mesh_uvsphere.vertex_tex_coords,
             },

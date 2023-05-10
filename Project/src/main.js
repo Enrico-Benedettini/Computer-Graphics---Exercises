@@ -173,12 +173,14 @@ async function main() {
         }
     })
 
+    const max_zoom_out = 20;
+
     canvas_elem.addEventListener('wheel', (event) => {
         // scroll wheel to zoom in or out
         const factor_mul_base = 1.08
         const factor_mul = (event.deltaY > 0) ? factor_mul_base : 1. / factor_mul_base
         frame_info.cam_distance_factor *= factor_mul
-        frame_info.cam_distance_factor = Math.max(0.02, Math.min(frame_info.cam_distance_factor, 8))
+        frame_info.cam_distance_factor = Math.max(0.02, Math.min(frame_info.cam_distance_factor, max_zoom_out))
         // console.log('wheel', event.deltaY, event.deltaMode);
         update_cam_transform(frame_info)
     })
@@ -265,7 +267,7 @@ async function main() {
                 deg_to_rad * 60, // fov y
                 frame.framebufferWidth / frame.framebufferHeight, // aspect ratio
                 0.01, // near
-                600, // far
+                1000, // far
             )
 
             const selected_planet_model_mat = scene_info.actors_by_name[selected_planet_name].mat_model_to_world
