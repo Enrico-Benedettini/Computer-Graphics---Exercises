@@ -6,12 +6,12 @@ import { mulberry32 } from './utils.js'
 import { Hexasphere } from '../lib/hexasphere/src/hexasphere.js'
 
 const MIN_PLANET_COUNT = 1;
-const MAX_PLANET_COUNT = 20;
-
-
+const MAX_PLANET_COUNT = 2;
 
 function generate_solar_system(seed) {
     const rand = mulberry32(seed);
+
+    noise.seed(seed);
 
     const planets = [];
 
@@ -22,14 +22,14 @@ function generate_solar_system(seed) {
     let planet_distance = 2.5;
 
     for (let i = 0; i < planet_count; ++i) {
-        const planet_size = rand(5, 20) / 4.;
+        const planet_size = rand(5, 40) / 4.;
 
         planet_distance += planet_size * 4 + rand(10, 20) / 15.;
 
         planets.push({
             name: 'planet' + i,
             size: planet_size,
-            rotation_speed: rand(1, 100) / 500 / Math.sqrt(planet_size) *
+            rotation_speed: rand(1, 100) / 2500 / Math.sqrt(planet_size) *
                 Math.sqrt(planet_distance) * self_rotation_dir,
 
             movement_type: 'planet',
@@ -52,6 +52,21 @@ function generate_solar_system(seed) {
 }
 
 
+function are_faces_equal(face1, face2) {
+    let matchCount = 0;
+    for (const p1 of face1.points) {
+        for (const p2 of face2.points) {
+            if (p1.x === p2.x && p1.y === p2.y && p1.z === p2.z) {
+                matchCount++;
+                if (matchCount >= 3) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 
 export function generate_planet_mesh(planet) {
     if (typeof planet !== 'object' || planet.length != undefined) {
@@ -62,34 +77,32 @@ export function generate_planet_mesh(planet) {
     let faces = [];
     let normals = [];
 
-    const sphere = new Hexasphere(planet.size / 1.7, 10, 0.9);
+    const sphere = new Hexasphere(planet.size / 1.7, 10, 1.);
 
     for (const tile of sphere.tiles) {
-        for (const face of tile.faces) {
-            const vertIdx = vertices.length;
 
-            const v1 = [
-                Number(face.points[0].x),
-                Number(face.points[0].y),
-                Number(face.points[0].z)
-            ];
+        const tileNoise = noise.perlin3(tile.centerPoint.x, tile.centerPoint.y, tile.centerPoint.z);
 
-            const v2 = [
-                Number(face.points[1].x),
-                Number(face.points[1].y),
-                Number(face.points[1].z)
-            ];
+        const additionalHeight = [tile.centerPoint.x * tileNoise,
+            tile.centerPoint.y * tileNoise,
+            tile.centerPoint.z * tileNoise];
 
-            const v3 = [
-                Number(face.points[2].x),
-                Number(face.points[2].y),
-                Number(face.points[2].z)
-            ];
+        const vertIdx = vertices.length;
 
-            vertices.push(v1, v2, v3);
-            normals.push(v1, v2, v3);
+        for (const boundary of tile.boundary) {
+            normals.push([
+                tile.centerPoint.x + additionalHeight, 
+                tile.centerPoint.y + additionalHeight, 
+                tile.centerPoint.z + additionalHeight,
+            ]);
+            vertices.push([Number(boundary.x), Number(boundary.y), Number(boundary.z)])
+        }
 
-            faces.push([vertIdx, vertIdx + 1, vertIdx + 2])
+        faces.push([0,1,2].map(x => x + vertIdx))
+        faces.push([0,2,3].map(x => x + vertIdx))
+        faces.push([0,3,4].map(x => x + vertIdx))
+        if (tile.boundary.length > 5) {
+            faces.push([0,4,5].map(x => x + vertIdx))
         }
     }
 

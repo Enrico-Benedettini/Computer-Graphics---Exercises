@@ -56,8 +56,8 @@ export var Tile = function(centerPoint, hexSize){
     this.centerPoint = centerPoint;
     this.faces = centerPoint.getOrderedFaces();
     this.boundary = [];
-    // this.neighborIds = []; // this holds the centerpoints, will resolve to references after
-    // this.neighbors = []; // this is filled in after all the tiles have been created
+    this.neighborIds = []; // this holds the centerpoints, will resolve to references after
+    this.neighbors = []; // this is filled in after all the tiles have been created
 
     var neighborHash = {};
     for(let f=0; f< this.faces.length; f++){
@@ -65,14 +65,14 @@ export var Tile = function(centerPoint, hexSize){
         this.boundary.push(this.faces[f].getCentroid().segment(this.centerPoint, hexSize));
 
         // get neighboring tiles
-        // var otherPoints = this.faces[f].getOtherPoints(this.centerPoint);
-        // for(var o = 0; o < 2; o++){
-        //     neighborHash[otherPoints[o]] = 1;
-        // }
+        var otherPoints = this.faces[f].getOtherPoints(this.centerPoint);
+        for(var o = 0; o < 2; o++){
+            neighborHash[otherPoints[o]] = 1;
+        }
 
     }
 
-    // this.neighborIds = Object.keys(neighborHash);
+    this.neighborIds = Object.keys(neighborHash);
 
     // Some of the faces are pointing in the wrong direction
     // Fix this.  Should be a better way of handling it
@@ -80,9 +80,9 @@ export var Tile = function(centerPoint, hexSize){
 
     this.normal = calculateSurfaceNormal(this.boundary[1], this.boundary[2], this.boundary[3]);
 
-    //if (!pointingAwayFromOrigin(this.centerPoint, normal)){
-    //    this.boundary.reverse();
-    //}
+    if (!pointingAwayFromOrigin(this.centerPoint, this.normal)){
+        this.boundary.reverse();
+    }
 };
 
 Tile.prototype.getLatLon = function(radius, boundaryNum){

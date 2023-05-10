@@ -220,5 +220,5 @@ void main() {
     l = -normalize((mat_model_view * vec4(position, 1.) - light_position_cam)).xyz;
     h = normalize(l + v);
     
-	gl_Position = mat_mvp * vec4(position * final_height, 1.);
+	gl_Position = mat_mvp * vec4(position, 1.);
 }
