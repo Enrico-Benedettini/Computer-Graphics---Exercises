@@ -91,7 +91,10 @@ async function main() {
     ---------------------------------------------------------------*/
     const resources = await load_resources(regl)
 
-    const scene_info = create_scene_content()
+    const seed = 120;
+
+    document.getElementById('seed').innerHTML = `Seed: ${seed}`
+    const scene_info = create_scene_content(seed)
 
     const sys_orbital_movement = new SysOrbitalMovement()
 
@@ -262,7 +265,7 @@ async function main() {
                 deg_to_rad * 60, // fov y
                 frame.framebufferWidth / frame.framebufferHeight, // aspect ratio
                 0.01, // near
-                200, // far
+                400, // far
             )
 
             const selected_planet_model_mat = scene_info.actors_by_name[selected_planet_name].mat_model_to_world

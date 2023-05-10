@@ -5,6 +5,7 @@ varying vec3 n;
 varying vec3 v;
 varying vec3 l;
 varying vec3 h;
+varying float height;
 
 uniform vec4 light_position_cam;
 
@@ -36,13 +37,38 @@ float compute_specular()
     return 0.;
 }
 
+const vec3 water = vec3(0.1, 0.3, 1.);
+const vec3 sand = vec3(194. / 255., 178. / 255., 128. / 255.);
+const vec3 grass = vec3(0.2,1.,0.2);
+const vec3 mountain = vec3(0.588, 0.3, 0.);
+
+vec3 material_for_height()
+{
+    if (height < 1.)
+    {
+        return water;
+    }
+
+    if (height < 1.03)
+    {
+        return mix(water, sand, (height - 1.) / 0.03);
+    }
+
+    if (height < 1.1)
+    {
+        return mix(sand, grass, (height - 1.03) / 0.07);
+    }
+
+    return mix(grass, mountain, (height - 1.1) / 0.2);
+}
+
 void main()
 {
     float diffuse = compute_diffuse();
     float specular = compute_specular();
 
     vec3 light_color = vec3(1.,1.,1.);
-    vec3 material_color = vec3(0.2,1.,0.2);
+    vec3 material_color = material_for_height();    
 
     vec3 ma = ambient * light_color;
 

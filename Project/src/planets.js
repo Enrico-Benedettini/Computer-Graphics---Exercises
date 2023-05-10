@@ -22,9 +22,9 @@ function generate_solar_system(seed) {
     let planet_distance = 2.5;
 
     for (let i = 0; i < planet_count; ++i) {
-        const planet_size = rand(2, 20) / 4.;
+        const planet_size = rand(5, 20) / 4.;
 
-        planet_distance += planet_size * 3 + rand(10, 20) / 15.;
+        planet_distance += planet_size * 4 + rand(10, 20) / 15.;
 
         planets.push({
             name: 'planet' + i,
@@ -36,7 +36,7 @@ function generate_solar_system(seed) {
             orbit: 'sun',
             orbit_radius: planet_distance,
             orbit_speed: rand(20, 100) / 100. / Math.sqrt(planet_distance),
-            orbit_phase: rand(1, 20) / 10,
+            orbit_phase: rand(0, 360) / 180. * Math.PI,
             orbital_inclination: (rand(0, 14) - 7) / 180. * Math.PI,
 
             shader_type: 'unshaded',
@@ -62,10 +62,9 @@ export function generate_planet_mesh(planet) {
     let faces = [];
     let normals = [];
 
-    const sphere = new Hexasphere(planet.size / 2, 4, 0.9);
+    const sphere = new Hexasphere(planet.size / 1.7, 10, 0.9);
 
     for (const tile of sphere.tiles) {
-        const tileNormal = [tile.normal.x, tile.normal.y, tile.normal.z]
         for (const face of tile.faces) {
             const vertIdx = vertices.length;
 
@@ -100,8 +99,8 @@ export function generate_planet_mesh(planet) {
 /*
     Construct the scene!
 */
-export function create_scene_content() {
-    const planets = generate_solar_system(12);
+export function create_scene_content(seed) {
+    const planets = generate_solar_system(seed);
 
     const actors = [
         {
@@ -213,6 +212,7 @@ export class SysRenderPlanetsUnshaded {
 
             // Uniforms: global data available to the shader
             uniforms: {
+                planet_size: regl.prop('planet_size'),
                 light_position_cam: regl.prop('light_position_cam'),
                 mat_mvp: regl.prop('mat_mvp'),
                 mat_normals: regl.prop('mat_normals'),
@@ -270,6 +270,7 @@ export class SysRenderPlanetsUnshaded {
 
                 entries_to_draw.push({
                     mesh: actor.mesh,
+                    planet_size: actor.size ?? 0,
                     light_position_cam,
                     mat_model_view,
                     mat_mvp: mat_mvp,
