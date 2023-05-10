@@ -79,9 +79,15 @@ export function generate_planet_mesh(planet) {
 
     const sphere = new Hexasphere(planet.size / 1.7, 10, 1.);
 
+    const noise_speed = 1.1;
+
     for (const tile of sphere.tiles) {
 
-        const tileNoise = noise.perlin3(tile.centerPoint.x, tile.centerPoint.y, tile.centerPoint.z);
+        const tileNoise = Math.max(0, noise.perlin3(
+            tile.centerPoint.x * noise_speed, 
+            tile.centerPoint.y * noise_speed, 
+            tile.centerPoint.z * noise_speed
+        ) * 0.15);
 
         const additionalHeight = [tile.centerPoint.x * tileNoise,
             tile.centerPoint.y * tileNoise,
@@ -89,21 +95,39 @@ export function generate_planet_mesh(planet) {
 
         const vertIdx = vertices.length;
 
+        const faceCount = tile.boundary.length;
+
+        // Top tiles
         for (const boundary of tile.boundary) {
-            normals.push([
-                tile.centerPoint.x + additionalHeight, 
-                tile.centerPoint.y + additionalHeight, 
-                tile.centerPoint.z + additionalHeight,
-            ]);
-            vertices.push([Number(boundary.x), Number(boundary.y), Number(boundary.z)])
+            normals.push([tile.centerPoint.x, tile.centerPoint.y, tile.centerPoint.z]);
+            vertices.push([
+                Number(boundary.x) + additionalHeight[0], 
+                Number(boundary.y) + additionalHeight[1], 
+                Number(boundary.z) + additionalHeight[2],
+            ])
         }
 
+        // Borders
+        for (const boundary of tile.boundary) {
+            normals.push([tile.centerPoint.x, tile.centerPoint.y, tile.centerPoint.z]);
+            vertices.push([
+                Number(boundary.x), 
+                Number(boundary.y), 
+                Number(boundary.z),
+            ])
+        }
+
+        // Top tiles
         faces.push([0,1,2].map(x => x + vertIdx))
         faces.push([0,2,3].map(x => x + vertIdx))
         faces.push([0,3,4].map(x => x + vertIdx))
-        if (tile.boundary.length > 5) {
+        if (faceCount > 5) {
             faces.push([0,4,5].map(x => x + vertIdx))
         }
+
+        // borders
+        faces.push([0, 1, faceCount].map(x => x + vertIdx));
+        faces.push([1, faceCount, faceCount + 1].map(x => x + vertIdx));
     }
 
     planet.mesh = { vertices, faces, normals };
