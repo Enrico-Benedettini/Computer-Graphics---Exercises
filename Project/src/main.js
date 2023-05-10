@@ -265,7 +265,7 @@ async function main() {
                 deg_to_rad * 60, // fov y
                 frame.framebufferWidth / frame.framebufferHeight, // aspect ratio
                 0.01, // near
-                400, // far
+                600, // far
             )
 
             const selected_planet_model_mat = scene_info.actors_by_name[selected_planet_name].mat_model_to_world

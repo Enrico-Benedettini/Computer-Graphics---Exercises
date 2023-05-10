@@ -6,7 +6,7 @@ import { mulberry32 } from './utils.js'
 import { Hexasphere } from '../lib/hexasphere/src/hexasphere.js'
 
 const MIN_PLANET_COUNT = 1;
-const MAX_PLANET_COUNT = 2;
+const MAX_PLANET_COUNT = 20;
 
 function generate_solar_system(seed) {
     const rand = mulberry32(seed);
@@ -24,13 +24,12 @@ function generate_solar_system(seed) {
     for (let i = 0; i < planet_count; ++i) {
         const planet_size = rand(5, 40) / 4.;
 
-        planet_distance += planet_size * 4 + rand(10, 20) / 15.;
+        planet_distance += planet_size * 4.5 + rand(10, 20) / 15.;
 
         planets.push({
             name: 'planet' + i,
             size: planet_size,
-            rotation_speed: rand(1, 100) / 2500 / Math.sqrt(planet_size) *
-                Math.sqrt(planet_distance) * self_rotation_dir,
+            rotation_speed: rand(1, 100) / 20500 / Math.sqrt(planet_size) * Math.sqrt(planet_distance) * self_rotation_dir,
 
             movement_type: 'planet',
             orbit: 'sun',
@@ -77,7 +76,7 @@ export function generate_planet_mesh(planet) {
     let faces = [];
     let normals = [];
 
-    const sphere = new Hexasphere(planet.size / 1.7, 10, 1.);
+    const sphere = new Hexasphere(planet.size / 3., 10, 1.);
 
     const noise_speed = 1.1;
 
@@ -89,9 +88,13 @@ export function generate_planet_mesh(planet) {
             tile.centerPoint.z * noise_speed
         ) * 0.15);
 
-        const additionalHeight = [tile.centerPoint.x * tileNoise,
+        const additionalHeight = planet.name === 'sun' ? [
+            0,0,0
+        ] : [
+            tile.centerPoint.x * tileNoise,
             tile.centerPoint.y * tileNoise,
-            tile.centerPoint.z * tileNoise];
+            tile.centerPoint.z * tileNoise
+        ];
 
         const vertIdx = vertices.length;
 
@@ -128,6 +131,27 @@ export function generate_planet_mesh(planet) {
         // borders
         faces.push([0, 1, faceCount].map(x => x + vertIdx));
         faces.push([1, faceCount, faceCount + 1].map(x => x + vertIdx));
+
+        faces.push([1, 2, faceCount + 1].map(x => x + vertIdx));
+        faces.push([2, faceCount + 1, faceCount + 2].map(x => x + vertIdx));
+
+        faces.push([2, 3, faceCount + 2].map(x => x + vertIdx));
+        faces.push([3, faceCount + 2, faceCount + 3].map(x => x + vertIdx));
+        
+        faces.push([3, 4, faceCount + 3].map(x => x + vertIdx));
+        faces.push([4, faceCount + 3, faceCount + 4].map(x => x + vertIdx));
+        
+        if (faceCount > 5) {
+            faces.push([4, 5, faceCount + 4].map(x => x + vertIdx));
+            faces.push([5, faceCount + 4, faceCount + 5].map(x => x + vertIdx));
+            
+            faces.push([5, 0, faceCount].map(x => x + vertIdx));
+            faces.push([5, faceCount + 5, faceCount].map(x => x + vertIdx));
+        }
+        else {
+            faces.push([4, 0, faceCount].map(x => x + vertIdx));
+            faces.push([4, faceCount + 4, faceCount].map(x => x + vertIdx));
+        }
     }
 
     planet.mesh = { vertices, faces, normals };
