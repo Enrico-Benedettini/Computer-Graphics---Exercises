@@ -22,7 +22,7 @@ function generate_solar_system(seed) {
     let planet_distance = 2.5;
 
     for (let i = 0; i < planet_count; ++i) {
-        const planet_size = rand(10, 40) / 4.;
+        const planet_size = rand(10 + i, 40 + i) / 4.;
 
         planet_distance += planet_size * 4.5 + rand(10, 20) / 15.;
 
@@ -40,12 +40,10 @@ function generate_solar_system(seed) {
 
             shader_type: 'unshaded',
             texture_name: 'earth_day.jpg',
+            seed: rand(),
 
         });
     }
-
-    console.log("planet_count: ", planet_count);
-    console.log("Planets: ", planets);
 
     return planets;
 }
@@ -60,18 +58,32 @@ export function generate_planet_mesh(planet) {
     const faces = [];
     const normals = [];
     const noises = [];
+    const centers = [];
 
-    const sphere = new Hexasphere(planet.size / 3., Math.ceil(planet.size * 2.5), 1.);
+    planet.actors = [];
 
-    const noise_speed = 0.8;
+    const sphere = new Hexasphere(planet.size / 3., Math.ceil(planet.size * 1.7), 1.);
+
+    const noise_speed = 4. / planet.size;
+
+    const noise_offset = planet.seed % 255;
+
+    // planet.actors.push({
+    //     name: 'rocksA_forest.obj',
+    //     parent: planet,
+    // })
 
     for (const tile of sphere.tiles) {
 
         let tileNoise = Math.max(0, noise.perlin3(
-            tile.centerPoint.x * noise_speed, 
+            tile.centerPoint.x * noise_speed + noise_offset, 
             tile.centerPoint.y * noise_speed, 
             tile.centerPoint.z * noise_speed
         ) * 0.15);
+
+        if (tileNoise > 0) {
+            tileNoise += 0.02;
+        }
 
         const additionalHeight = planet.name === 'sun' ? [
             0,0,0
@@ -85,15 +97,22 @@ export function generate_planet_mesh(planet) {
 
         const faceCount = tile.boundary.length;
 
+        const centerPoint = [
+            tile.centerPoint.x + additionalHeight[0],
+            tile.centerPoint.y + additionalHeight[1],
+            tile.centerPoint.z + additionalHeight[2],
+        ];
+
         // Top tiles
         for (const boundary of tile.boundary) {
             vertices.push([
-                Number(boundary.x) + additionalHeight[0], 
-                Number(boundary.y) + additionalHeight[1], 
+                Number(boundary.x) + additionalHeight[0],
+                Number(boundary.y) + additionalHeight[1],
                 Number(boundary.z) + additionalHeight[2],
             ])
             normals.push(tileNoise > 0. ? [tile.centerPoint.x, tile.centerPoint.y, tile.centerPoint.z] : vertices[vertices.length - 1]);
             noises.push(tileNoise);
+            centers.push(centerPoint)
         }
 
         // Top tiles
@@ -117,6 +136,7 @@ export function generate_planet_mesh(planet) {
                 Number(boundary.z),
             ])
             noises.push(tileNoise);
+            centers.push(centerPoint)
         }
 
         // borders
@@ -145,7 +165,7 @@ export function generate_planet_mesh(planet) {
         }
     }
 
-    planet.mesh = { vertices, faces, normals, noise: noises };
+    planet.mesh = { vertices, faces, normals, noise: noises, centers };
 }
 
 /*
@@ -188,6 +208,7 @@ export function create_scene_content(seed) {
         sim_time: 0.,
         actors: actors,
         actors_by_name: actors_by_name,
+        meshes: actors.flatMap(a => a.actors).filter(x => x != null),
     }
 }
 
@@ -256,6 +277,7 @@ export class SysRenderPlanetsUnshaded {
                 normal: regl.prop('mesh.normals'),
                 position: regl.prop('mesh.vertices'),
                 noise: regl.prop('mesh.noise'),
+                center: regl.prop('mesh.centers'),
                 // position: mesh_uvsphere.vertex_positions,
                 // tex_coord: mesh_uvsphere.vertex_tex_coords,
             },
@@ -310,6 +332,8 @@ export class SysRenderPlanetsUnshaded {
 
                 
                 mat4_matmul_many(tmp, mat_projection, mat_view)
+
+                actor.mvp = mat_mvp;
 		        // Calculate light position in camera frame
 		        //vec3.transformMat4(light_position_cam, [0,0,0], tmp)
 

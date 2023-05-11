@@ -6,8 +6,10 @@ varying vec3 v;
 varying vec3 l;
 varying vec3 h;
 varying float height;
+varying float tileCenterDistance;
 
 uniform vec4 light_position_cam;
+uniform float planet_size;
 
 const float ambient = 0.2;
 const float shininess = 0.2;
@@ -43,6 +45,11 @@ const vec3 sand = vec3(0.76, 0.76, .2);
 const vec3 grass = vec3(	.016, .776, .306);
 const vec3 mountain = vec3(0.592, 0.486,  0.325);
 
+vec3 global_illumination(vec3 color)
+{
+    return mix(color, vec3(0.,0.,0.),  (tileCenterDistance / planet_size) * 25.);
+}
+
 vec3 material_for_height()
 {
     if (height <= 0.)
@@ -55,7 +62,7 @@ vec3 material_for_height()
     //    return mix(sand, grass, (height) / 0.08);
     //}
 
-    return mix(grass, mountain, (height) * 10.);
+    return global_illumination(mix(grass, mountain, height * 15.));
 }
 
 void main()

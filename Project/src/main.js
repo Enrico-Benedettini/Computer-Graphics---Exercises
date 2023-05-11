@@ -1,6 +1,7 @@
 
 import { createREGL } from "../lib/regljs_2.1.0/regl.module.js"
 import { vec2, vec3, vec4, mat3, mat4 } from "../lib/gl-matrix_3.3.0/esm/index.js"
+import {icg_mesh_load_obj} from "./icg_mesh.js"
 
 import { DOM_loaded_promise, load_text, load_texture, register_keyboard_action } from "./icg_web.js"
 import { deg_to_rad, mat4_to_string, vec_to_string, mat4_matmul_many } from "./icg_math.js"
@@ -8,6 +9,7 @@ import { icg_mesh_make_uv_sphere } from "./icg_mesh.js"
 import { SystemRenderGrid } from "./icg_grid.js"
 
 import { create_scene_content, SysOrbitalMovement, SysRenderPlanetsUnshaded } from "./planets.js"
+import { SysRenderMesh } from "./mesh.js"
 
 
 async function load_resources(regl) {
@@ -30,14 +32,21 @@ async function load_resources(regl) {
     // Start downloads in parallel
     const resource_promises = {}
 
+
+    const meshes_to_load = [
+        "rocksA_forest.obj",
+        
+    ]
+    for (const mesh_name of meshes_to_load) {
+        resource_promises[mesh_name] = icg_mesh_load_obj(regl, `./meshes/${mesh_name}`)
+    }
+
     const textures_to_load = [
-        'sun.jpg', 'moon.jpg', 'mars.jpg',
-        'earth_day.jpg', 'earth_night.jpg', 'earth_gloss.jpg',
+        
     ]
     for (const tex_name of textures_to_load) {
         resource_promises[tex_name] = load_texture(regl, `./textures/${tex_name}`)
     }
-    resource_promises['earth_clouds.jpg'] = load_texture(regl, `./textures/earth_clouds.jpg`, { wrapS: 'repeat' })
 
 
     const shaders_to_load = [
@@ -100,7 +109,10 @@ async function main() {
 
     const sys_render_unshaded = new SysRenderPlanetsUnshaded(regl, resources)
 
-    const sys_render_grid = new SystemRenderGrid(regl, resources)
+    // const sys_render_grid = new SystemRenderGrid(regl, resources)
+
+    const sys_render_mesh = new SysRenderMesh(regl, resources)
+
 
     /*---------------------------------------------------------------
         Frame info
@@ -301,6 +313,8 @@ async function main() {
         regl.clear({ color: [0.1, 0.1, 0.1, 1] });
 
         sys_render_unshaded.render(frame_info, scene_info)
+
+        sys_render_mesh.render(frame_info, scene_info);
 
         if (grid_on) {
             // sys_render_grid.render(frame_info, scene_info)
