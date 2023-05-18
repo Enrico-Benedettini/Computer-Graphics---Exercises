@@ -12,9 +12,46 @@ varying float verticalDistance;
 uniform vec4 light_position_cam;
 uniform float planet_size;
 uniform float temperature;
+uniform float distance_from_sun;
+
+uniform vec4 planet_sizes[20];
+uniform vec4 planet_locations[20];
 
 const float ambient = 0.2;
 const float shininess = 0.2;
+
+bool trace_ray(vec3 start, vec3 direction) 
+{
+    vec3 d = normalize(direction);
+
+    float a = d.x * d.x + d.y * d.y + d.z * d.z;
+
+    for (int i = 0; i < 20; ++i) 
+    {
+        float size = planet_sizes[i].x;
+        if (length(start - planet_locations[i].xyz) <= distance_from_sun) 
+        {
+            float r = planet_sizes[i].x;
+            vec3 o = start - planet_locations[i].xyz;
+            float b = 2. * (o.x * d.x + o.y * d.y + o.z * d.z);
+            float c = o.x * o.x + o.y * o.y + o.z * o.z - r * r;
+
+            float delta = b * b - 4. * a * c;
+
+            if (delta >= 0.) {
+                float sqrtDelta = sqrt(delta);
+                float t1 = (-b + sqrtDelta) / (2. * a);
+                float t2 = (-b - sqrtDelta) / (2. * a);
+
+                if (t1 >= 0. || t2 >= 0.) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
 
 float compute_diffuse() 
 {
@@ -55,7 +92,8 @@ vec3 global_illumination(vec3 color)
 
 vec3 coldness(vec3 color) {
     float relDist = verticalDistance / planet_size;
-    return mix(color, vec3(1.,1.,1.),   max(1. - temperature + relDist, 0.));
+    float coldFactor = max(1. - temperature + relDist, 0.);
+    return mix(color, vec3(1.,1.,1.), coldFactor * coldFactor);
 }
 
 vec3 material_for_height()
@@ -75,8 +113,15 @@ vec3 material_for_height()
 
 void main()
 {
-    float diffuse = compute_diffuse();
-    float specular = compute_specular();
+    float diffuse = 0.;
+    float specular = 0.;
+    
+    bool is_in_shadow = trace_ray(x + 1.0001 * normalize(l), l);
+    if (!is_in_shadow)
+    {
+        diffuse = compute_diffuse();
+        specular = compute_specular();
+    }
 
     vec3 light_color = vec3(1.,1.,1.);
     vec3 material_color = material_for_height();    

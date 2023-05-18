@@ -41,6 +41,41 @@ function generate_sun(seed) {
     };
 }
 
+function generate_moons(parent, count, rand) {
+    const moons = [];
+
+    let moon_distance = parent.size + 1;
+
+    for (let i = 0; i < count; ++i) {
+        const moon_size = rand(10 + i, 30 + i) / 10.;
+
+        moon_distance += moon_size;
+
+        moons.push({
+            name: parent.name + "_moon" + i,
+            size: moon_size,
+            orbit: parent.name,
+            movement_type: 'moon',
+
+            rotation_speed: rand(10, 300) / 1500 / Math.sqrt(moon_size) * Math.sqrt(moon_distance),
+            orbit_radius: moon_distance,
+            orbit_speed: rand(80, 200) / 100. / Math.sqrt(moon_distance),
+            orbit_phase: rand(0, 360) / 10. * Math.PI,
+            orbital_inclination: (rand(0, 14) - 7) / 180. * Math.PI,
+
+            shader_type: 'unshaded',
+            seed: (i + 3) * parent.seed,
+            mat_mvp: mat4.create(),
+            mat_mv: mat4.create(),
+            temperature: parent.temperature,
+        })
+
+        moon_distance += rand(10, 40) / 10.;
+    }
+
+    return moons;
+}
+
 function generate_solar_system(seed, sun) {
     console.time("generate_solar_system");
 
@@ -54,23 +89,25 @@ function generate_solar_system(seed, sun) {
 
     const self_rotation_dir = rand(0, 1) ? 1 : -1;
 
-    let planet_distance = sun.size * 1.1;
+    let planet_distance = sun.size * 2;
 
     for (let i = 0; i < planet_count; ++i) {
         const planet_size = rand(10 + i, 40 + i) / 4.;
 
         planet_distance += planet_size + rand(10, 20) / 10.
 
-        planets.push({
-            name: 'planet' + i,
+        const planet_name = 'planet' + i;
+
+        const planet = {
+            name: planet_name,
             size: planet_size,
-            rotation_speed: rand(1, 100) / 20500 / Math.sqrt(planet_size) * Math.sqrt(planet_distance) * self_rotation_dir,
+            rotation_speed: rand(10, 300) / 1500 / Math.sqrt(planet_size) * Math.sqrt(planet_distance) * self_rotation_dir,
 
             movement_type: 'planet',
             orbit: 'sun',
             orbit_radius: planet_distance,
-            orbit_speed: rand(20, 100) / 100. / Math.sqrt(planet_distance),
-            orbit_phase: rand(0, 360) / 180. * Math.PI,
+            orbit_speed: rand(80, 200) / 100. / Math.sqrt(planet_distance),
+            orbit_phase: rand(0, 360) / 10. * Math.PI,
             orbital_inclination: (rand(0, 14) - 7) / 180. * Math.PI,
 
             shader_type: 'unshaded',
@@ -79,9 +116,23 @@ function generate_solar_system(seed, sun) {
             mat_mvp: mat4.create(),
             mat_mv: mat4.create(),
             temperature: compute_temperature(sun.temperature, sun.size, planet_distance),
-        });
+        };
 
-        planet_distance += planet_size;
+        let moons = [];
+        let moonMaxOrbit = 0;
+
+        const moon_count = Math.max(0, rand(9, 14) - 10);
+        if (moon_count > 0) {
+            moons = generate_moons(planet, moon_count, rand);
+            planets.push(...moons);
+            moonMaxOrbit = moons[moons.length - 1].orbit_radius;
+        }
+
+        planet.orbit_radius += moonMaxOrbit;
+        planet_distance += planet_size + moonMaxOrbit;
+
+        planets.push(planet);
+        planets.push(...moons);
     }
 
     console.timeEnd("generate_solar_system");
@@ -94,8 +145,6 @@ export function spawn_mesh_on_planet(planet, tileNormal) {
 
     const theta = Math.acos(normalVector[2]);
     const phi = Math.atan2(normalVector[1], normalVector[0]);
-
-    console.log(normalVector, theta, phi);
     
     planet.actors.push({
         name: 'rocksA_forest.obj',
@@ -110,7 +159,7 @@ export function spawn_mesh_on_planet(planet, tileNormal) {
 }
 
 export function generate_planet_mesh(planet) {
-    if (typeof planet !== 'object' || planet.length != undefined) {
+    if (typeof planet !== 'object') {
         return;
     }
 
@@ -279,7 +328,7 @@ export function create_scene_content(seed) {
         sim_time: 0.,
         actors: actors,
         actors_by_name: actors_by_name,
-        meshes: actors.flatMap(a => a.actors).filter(x => x != null),
+        meshes: actors.flatMap(a => a.actors),
     }
 }
 
@@ -298,10 +347,10 @@ export class SysOrbitalMovement {
     calculate_model_matrix(actor, sim_time, actors_by_name) {
         mat4.identity(M_orbit);
         mat4.identity(M_translation);
-
         if (actor.orbit !== null) {
             // Parent's translation
             const parent = actors_by_name[actor.orbit]
+
             const parent_translation_v = mat4.getTranslation([0, 0, 0], parent.mat_model_to_world)
 
             // Orbit around the parent
@@ -326,12 +375,58 @@ export class SysOrbitalMovement {
 
         // Iterate over actors which have planet movement type
         for (const actor of actors) {
-            if (actor.movement_type === 'planet') {
+            if (actor.movement_type === 'planet' || actor.movement_type === 'moon') {
                 this.calculate_model_matrix(actor, sim_time, actors_by_name)
             }
         }
     }
 
+}
+
+export const compute_transforms = (frame_info, scene_info) => 
+{
+    const { mat_projection, mat_view, light_position_cam } = frame_info
+    
+    const planetsInfo = [];
+
+    for (const actor of scene_info.actors) {
+
+        // Choose only planet using this shader
+        if (actor.shader_type === 'unshaded') { 
+            const mat_model_view = mat4.create()
+            const mat_mvp = mat4.create()
+            const mat_normals_to_view = mat3.create()
+
+            mat3.identity(mat_normals_to_view)
+
+            mat4_matmul_many(mat_model_view, mat_view, actor.mat_model_to_world)
+            mat4_matmul_many(mat_mvp, mat_projection, mat_model_view);
+
+            mat3.fromMat4(mat_normals_to_view, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), mat_model_view)));
+
+            actor.mat_mvp = mat_mvp;
+            actor.mat_normals_to_view = mat_normals_to_view;
+            actor.mat_model_view = mat_model_view;
+
+            if (actor.name !== 'sun') {
+                const center_point = vec4.fromValues(0, 0, 0, 1);
+
+                planetsInfo.push({
+                    size: actor.size ?? 0.,
+                    location: vec4.transformMat4(center_point, center_point, mat_model_view),
+                });
+            }
+        }
+    }
+
+    for (let i = planetsInfo.length; i < 20; ++i) {
+        planetsInfo.push({
+            size: 0.,
+            location: vec4.create(),
+        });
+    }
+
+    return planetsInfo;
 }
 
 /*
@@ -342,6 +437,22 @@ export class SysRenderPlanetsUnshaded {
     constructor(regl, resources) {
         // Keep a reference to textures
         this.resources = resources;
+
+
+        const uniforms = Object.assign({
+            temperature: regl.prop('mesh.temperature'),
+            planet_size: regl.prop('planet_size'),
+            light_position_cam: regl.prop('light_position_cam'),
+            mat_mvp: regl.prop('mat_mvp'),
+            mat_normals: regl.prop('mat_normals'),
+            planet_center: regl.prop('planet_center'),
+            mat_model_view: regl.prop('mat_model_view'),
+            distance_from_sun: regl.prop('distance_from_sun'),
+        }, new Uint8Array(20).reduce((acc, val, index) => {
+            acc['planet_sizes['+index+']'] = regl.prop('planet_sizes['+index+']');
+            acc['planet_locations['+index+']'] = regl.prop('planet_locations['+index+']');
+            return acc;
+          }, {}));
 
         this.pipeline = regl({
             attributes: {
@@ -357,57 +468,16 @@ export class SysRenderPlanetsUnshaded {
             elements: regl.prop('mesh.faces'),
 
             // Uniforms: global data available to the shader
-            uniforms: {
-                temperature: regl.prop('mesh.temperature'),
-                planet_size: regl.prop('planet_size'),
-                light_position_cam: regl.prop('light_position_cam'),
-                mat_mvp: regl.prop('mat_mvp'),
-                mat_normals: regl.prop('mat_normals'),
-                planet_center: regl.prop('planet_center'),
-                mat_model_view: regl.prop('mat_model_view'),
-            },
+            uniforms,
 
             vert: regl.prop('vert'),
             frag: regl.prop('frag'),
         })
+
+        this.regl = regl;
     }
 
-    compute_transforms(frame_info, scene_info) {
-        const { mat_projection, mat_view, light_position_cam } = frame_info
-        
-        const center_points = [];
-        const sizes = [];
-
-        for (const actor of scene_info.actors) {
-
-            // Choose only planet using this shader
-            if (actor.shader_type === 'unshaded') { 
-                const mat_model_view = mat4.create()
-                const mat_mvp = mat4.create()
-                const mat_normals_to_view = mat3.create()
-
-                mat3.identity(mat_normals_to_view)
-
-                mat4_matmul_many(mat_model_view, mat_view, actor.mat_model_to_world)
-                mat4_matmul_many(mat_mvp, mat_projection, mat_model_view);
-
-                mat3.fromMat4(mat_normals_to_view, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), mat_model_view)));
-
-                actor.mat_mvp = mat_mvp;
-                actor.mat_normals_to_view = mat_normals_to_view;
-                actor.mat_model_view = mat_model_view;
-
-                const center_point = vec4.create();
-
-                sizes.push(actor.size);
-                center_points.push(vec4.transformMat4(vec4.create(), center_point, mat_model_view))
-            }
-        }
-        
-        return { center_points, sizes };
-    }
-
-    render(frame_info, scene_info) {
+    render(frame_info, scene_info, planets_info) {
         /* 
         We will collect all objects to draw with this pipeline into an array
         and then run the pipeline on all of them.
@@ -433,19 +503,24 @@ export class SysRenderPlanetsUnshaded {
                 }
 
                 entries_to_draw.push({
+                    ...shaders,
                     mesh: actor.mesh,
                     planet_size: actor.size,
                     light_position_cam,
                     mat_model_view: actor.mat_model_view,
                     mat_mvp: actor.mat_mvp,
                     mat_normals: actor.mat_normals_to_view,
-                    ...shaders
+                    planet_sizes: planets_info.map(x => vec4.fromValues(x.size ?? 0., 0, 0, 0)),
+                    planet_locations: planets_info.map(x => x.location),
+                    distance_from_sun: actor.orbit_radius
                 });
             }
         }
 
         // Draw on the GPU
         this.pipeline(entries_to_draw)
+
+        this.regl = undefined;
     }
 }
 

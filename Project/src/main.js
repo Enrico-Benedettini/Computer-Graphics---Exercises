@@ -8,7 +8,7 @@ import { deg_to_rad, mat4_to_string, vec_to_string, mat4_matmul_many } from "./i
 import { icg_mesh_make_uv_sphere } from "./icg_mesh.js"
 import { SystemRenderGrid } from "./icg_grid.js"
 
-import { create_scene_content, SysOrbitalMovement, SysRenderPlanetsUnshaded } from "./planets.js"
+import { create_scene_content, SysOrbitalMovement, SysRenderPlanetsUnshaded, compute_transforms } from "./planets.js"
 import { SysRenderMesh } from "./mesh.js"
 
 
@@ -331,11 +331,12 @@ async function main() {
 
         // Set the whole image to black
         regl.clear({ color: [0.05, 0.05, 0.1, 1] });
+        
+        const planets_info = compute_transforms(frame_info, scene_info)
 
-        sys_render_unshaded.compute_transforms(frame_info, scene_info);
-        sys_render_unshaded.render(frame_info, scene_info);
+        sys_render_unshaded.render(frame_info, scene_info, planets_info);
 
-        sys_render_mesh.render(frame_info, scene_info);
+        sys_render_mesh.render(frame_info, scene_info, planets_info);
 
         if (grid_on) {
             // sys_render_grid.render(frame_info, scene_info)
