@@ -14,6 +14,7 @@ varying vec3 l;
 varying vec3 h;
 varying float height;
 varying float tileCenterDistance;
+varying float verticalDistance;
 
 // Global variables specified in "uniforms" entry of the pipeline
 uniform mat4 mat_mvp;
@@ -21,17 +22,19 @@ uniform mat3 mat_normals;
 uniform vec4 light_position_cam;
 uniform mat4 mat_model_view;
 uniform float planet_size;
+uniform float temperature;
 
 
 void main() {
     height = noise;
+    verticalDistance = abs(center.z);
 
-    tileCenterDistance = length(position - center);
+    tileCenterDistance = length(position - center * 1.01);
     
     x = normalize((mat_model_view * vec4(position, 1.)).xyz);
     n = normalize(  mat_normals * normalize(normal));
     v = vec3(0., 0., 1.);
-    l = -normalize((mat_model_view * vec4(position, 1.) - light_position_cam)).xyz;
+    l = normalize(light_position_cam - (mat_model_view * vec4(position, 1.))).xyz;
     h = normalize(l + v);
     
 	gl_Position = mat_mvp * vec4(position, 1.);

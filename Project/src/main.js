@@ -185,7 +185,21 @@ async function main() {
         }
     })
 
-    const max_zoom_out = 20;
+    let lastTouch = null;
+    canvas_elem.addEventListener('touchstart', (event) => {
+        lastTouch = event.touches[0]
+    });
+    canvas_elem.addEventListener('touchmove', (event) => {
+        // if left or middle button is pressed
+        frame_info.cam_angle_z += (event.touches[0].clientX - lastTouch.clientX) * 0.005
+        frame_info.cam_angle_y += -(event.touches[0].clientY - lastTouch.clientY) * 0.005
+
+        update_cam_transform(frame_info)
+
+        lastTouch = event.touches[0];
+    })
+
+    const max_zoom_out = 30;
 
     canvas_elem.addEventListener('wheel', (event) => {
         // scroll wheel to zoom in or out
@@ -236,17 +250,23 @@ async function main() {
         }
     }
 
-    // Predefined views
-    for (let i = 0; i < 10; ++i) {
-        register_keyboard_action(i + '', () => {
-            set_selected_planet('planet' + i)
-            scene_info.sim_time = 32.0
-            frame_info.cam_angle_z = 169.3 * deg_to_rad
-            frame_info.cam_angle_y = -201.7 * deg_to_rad
-            frame_info.cam_distance_factor = 8.2
+    const bind_key_to_planet = (key, planet, zoom = 8.2) => {
+        register_keyboard_action(key, () => {
+            set_selected_planet(planet)
+            scene_info.sim_time = 0.0
+            frame_info.cam_angle_z = 1.2
+            frame_info.cam_angle_y = -0.8
+            frame_info.cam_distance_factor = zoom
 
             update_cam_transform(frame_info)
         })
+    }
+
+    bind_key_to_planet('s', 'sun');
+
+    // Predefined views
+    for (let i = 0; i < 10; ++i) {
+        bind_key_to_planet(i + '','planet' + i, 4)
     }
 
 

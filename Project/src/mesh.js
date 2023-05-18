@@ -1,6 +1,8 @@
 import {vec2, vec3, vec4, mat3, mat4} from "../lib/gl-matrix_3.3.0/esm/index.js"
 import {mat4_matmul_many} from "./icg_math.js"
 
+const mesh_scale = mat4.fromScaling(mat4.create(), [0.2, 0.2, 0.2]);
+
 export class SysRenderMesh {
 
 	constructor(regl, resources) {
@@ -43,9 +45,16 @@ export class SysRenderMesh {
 
         // For each planet, construct information needed to draw it using the pipeline
         for (const mesh of scene_info.meshes) {
+            const mat_mvp = mesh.mat_mvp = (mesh.mat_mvp ?? mat4.create());
+
+            mat4.fromTranslation(mat_mvp, mesh.translation)
+
+            mat4.multiply(mat_mvp, mat_mvp, mesh_scale);
+            mat4.multiply(mat_mvp, mesh.parent.mat_mvp, mat_mvp);
+
             entries_to_draw.push({
 				mesh: this.resources[mesh.name],
-				mat_mvp: parent.mvp,
+				mat_mvp: mat_mvp,
 			})
         }
         

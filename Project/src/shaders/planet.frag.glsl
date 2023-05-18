@@ -7,9 +7,11 @@ varying vec3 l;
 varying vec3 h;
 varying float height;
 varying float tileCenterDistance;
+varying float verticalDistance;
 
 uniform vec4 light_position_cam;
 uniform float planet_size;
+uniform float temperature;
 
 const float ambient = 0.2;
 const float shininess = 0.2;
@@ -47,7 +49,13 @@ const vec3 mountain = vec3(0.592, 0.486,  0.325);
 
 vec3 global_illumination(vec3 color)
 {
-    return mix(color, vec3(0.,0.,0.),  (tileCenterDistance / planet_size) * 25.);
+    return mix(color, vec3(0.,0.,0.),  
+        max(0., min((tileCenterDistance * tileCenterDistance * tileCenterDistance * 6.), 1.)));
+}
+
+vec3 coldness(vec3 color) {
+    float relDist = verticalDistance / planet_size;
+    return mix(color, vec3(1.,1.,1.),   max(1. - temperature + relDist, 0.));
 }
 
 vec3 material_for_height()
@@ -62,7 +70,7 @@ vec3 material_for_height()
     //    return mix(sand, grass, (height) / 0.08);
     //}
 
-    return global_illumination(mix(grass, mountain, height * 15.));
+    return global_illumination(coldness(mix(grass, mountain, height * 15.)));
 }
 
 void main()

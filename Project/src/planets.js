@@ -8,7 +8,42 @@ import { Hexasphere } from '../lib/hexasphere/src/hexasphere.js'
 const MIN_PLANET_COUNT = 1;
 const MAX_PLANET_COUNT = 20;
 
-function generate_solar_system(seed) {
+const vec3_tmp1 = vec3.create();
+const vec3_tmp2 = vec3.create();
+
+const compute_tri_normals = (p1, p2, p3) => {
+    const normal = vec3.create();
+
+    vec3.subtract(vec3_tmp1, p2, p1);
+    vec3.subtract(vec3_tmp2, p3, p1);
+    vec3.cross(normal, vec3_tmp1, vec3_tmp2)
+
+    return normal;
+}
+
+const compute_temperature = (sunTemp, sunRad, distance) => 
+    sunTemp * Math.sqrt(sunRad / distance / 2.);
+
+function generate_sun(seed) {
+    const rand = mulberry32(seed);
+
+    return {
+        name: 'sun',
+        size: rand(3, 10),
+        temperature: rand(10, 15) / 2,
+        rotation_speed: 0,
+
+        movement_type: 'planet',
+        orbit: null,
+
+        shader_type: 'unshaded',
+        texture_name: 'sun.jpg',
+    };
+}
+
+function generate_solar_system(seed, sun) {
+    console.time("generate_solar_system");
+
     const rand = mulberry32(seed);
 
     noise.seed(seed);
@@ -19,12 +54,12 @@ function generate_solar_system(seed) {
 
     const self_rotation_dir = rand(0, 1) ? 1 : -1;
 
-    let planet_distance = 2.5;
+    let planet_distance = sun.size * 1.1;
 
     for (let i = 0; i < planet_count; ++i) {
         const planet_size = rand(10 + i, 40 + i) / 4.;
 
-        planet_distance += planet_size * 4.5 + rand(10, 20) / 15.;
+        planet_distance += planet_size + rand(10, 20) / 10.
 
         planets.push({
             name: 'planet' + i,
@@ -41,9 +76,14 @@ function generate_solar_system(seed) {
             shader_type: 'unshaded',
             texture_name: 'earth_day.jpg',
             seed: rand(),
-
+            mat_mvp: mat4.create(),
+            temperature: compute_temperature(sun.temperature, sun.size, planet_distance),
         });
+
+        planet_distance += planet_size;
     }
+
+    console.timeEnd("generate_solar_system");
 
     return planets;
 }
@@ -62,32 +102,27 @@ export function generate_planet_mesh(planet) {
 
     planet.actors = [];
 
-    const sphere = new Hexasphere(planet.size / 3., Math.ceil(planet.size * 1.7), 1.);
+    const sphere = new Hexasphere(planet.size, Math.ceil(planet.size * 1.7), 1.);
 
-    const noise_speed = 4. / planet.size;
+    const noise_speed = 1.4 / planet.size;
 
     const noise_offset = planet.seed % 255;
 
-    // planet.actors.push({
-    //     name: 'rocksA_forest.obj',
-    //     parent: planet,
-    // })
+    const nullVector = [0, 0, 0];
 
     for (const tile of sphere.tiles) {
 
         let tileNoise = Math.max(0, noise.perlin3(
-            tile.centerPoint.x * noise_speed + noise_offset, 
-            tile.centerPoint.y * noise_speed, 
+            tile.centerPoint.x * noise_speed + noise_offset,
+            tile.centerPoint.y * noise_speed,
             tile.centerPoint.z * noise_speed
-        ) * 0.15);
+        )) * 0.15;
 
         if (tileNoise > 0) {
-            tileNoise += 0.02;
+            tileNoise += 0.0015 * planet.size;
         }
 
-        const additionalHeight = planet.name === 'sun' ? [
-            0,0,0
-        ] : [
+        const additionalHeight = planet.name === 'sun' ? nullVector : [
             tile.centerPoint.x * tileNoise,
             tile.centerPoint.y * tileNoise,
             tile.centerPoint.z * tileNoise
@@ -98,41 +133,63 @@ export function generate_planet_mesh(planet) {
         const faceCount = tile.boundary.length;
 
         const centerPoint = [
-            tile.centerPoint.x + additionalHeight[0],
-            tile.centerPoint.y + additionalHeight[1],
-            tile.centerPoint.z + additionalHeight[2],
+            Number(tile.centerPoint.x) + additionalHeight[0],
+            Number(tile.centerPoint.y) + additionalHeight[1],
+            Number(tile.centerPoint.z) + additionalHeight[2],
+        ];
+
+        const perp_normal = [
+            Number(tile.centerPoint.x),
+            Number(tile.centerPoint.y),
+            Number(tile.centerPoint.z),
         ];
 
         // Top tiles
         for (const boundary of tile.boundary) {
-            vertices.push([
+            const vert = [
                 Number(boundary.x) + additionalHeight[0],
                 Number(boundary.y) + additionalHeight[1],
                 Number(boundary.z) + additionalHeight[2],
-            ])
-            normals.push(tileNoise > 0. ? [tile.centerPoint.x, tile.centerPoint.y, tile.centerPoint.z] : vertices[vertices.length - 1]);
+            ]
+            vertices.push(vert)
+            normals.push(tileNoise > 0. ? perp_normal : vert);
             noises.push(tileNoise);
             centers.push(centerPoint)
         }
 
         // Top tiles
-        faces.push([0,1,2].map(x => x + vertIdx))
-        faces.push([0,2,3].map(x => x + vertIdx))
-        faces.push([0,3,4].map(x => x + vertIdx))
+        faces.push([vertIdx, vertIdx + 1, vertIdx + 2])
+        faces.push([vertIdx, vertIdx + 2, vertIdx + 3])
+        faces.push([vertIdx, vertIdx + 3, vertIdx + 4])
         if (faceCount > 5) {
-            faces.push([0,4,5].map(x => x + vertIdx))
+            faces.push([vertIdx, vertIdx + 4, vertIdx + 5]);
         }
 
-        if (tileNoise <= 0.) {
+        if (tileNoise <= 0. || planet.name === 'sun') {
             continue;
         }
 
+        //if (Math.random() < 0.2)
+        //    planet.actors.push({
+        //        name: 'rocksA_forest.obj',
+        //        parent: planet,
+        //        translation: centerPoint,
+        //        mat_mvp: mat4.create(),
+        //    })
+
+
+        const border_normal = [
+            Number(tile.centerPoint.x),
+            Number(tile.centerPoint.y),
+            Number(tile.centerPoint.z),
+        ];
+
         // Borders
         for (const boundary of tile.boundary) {
-            normals.push([tile.centerPoint.x, tile.centerPoint.y, tile.centerPoint.z]);
+            normals.push(border_normal);
             vertices.push([
-                Number(boundary.x), 
-                Number(boundary.y), 
+                Number(boundary.x),
+                Number(boundary.y),
                 Number(boundary.z),
             ])
             noises.push(tileNoise);
@@ -140,22 +197,22 @@ export function generate_planet_mesh(planet) {
         }
 
         // borders
-        faces.push([0, 1, faceCount].map(x => x + vertIdx));
-        faces.push([1, faceCount, faceCount + 1].map(x => x + vertIdx));
+        faces.push([vertIdx, vertIdx + 1, vertIdx + faceCount]);
+        faces.push([vertIdx + 1, vertIdx + faceCount, vertIdx + faceCount + 1]);
 
-        faces.push([1, 2, faceCount + 1].map(x => x + vertIdx));
-        faces.push([2, faceCount + 1, faceCount + 2].map(x => x + vertIdx));
+        faces.push([vertIdx + 1, vertIdx + 2, vertIdx + faceCount + 1]);
+        faces.push([vertIdx + 2, vertIdx + faceCount + 1, vertIdx + faceCount + 2]);
 
-        faces.push([2, 3, faceCount + 2].map(x => x + vertIdx));
-        faces.push([3, faceCount + 2, faceCount + 3].map(x => x + vertIdx));
-        
-        faces.push([3, 4, faceCount + 3].map(x => x + vertIdx));
-        faces.push([4, faceCount + 3, faceCount + 4].map(x => x + vertIdx));
-        
+        faces.push([vertIdx + 2, vertIdx + 3, vertIdx + faceCount + 2]);
+        faces.push([vertIdx + 3, vertIdx + faceCount + 2, vertIdx + faceCount + 3]);
+
+        faces.push([vertIdx + 3, vertIdx + 4, vertIdx + faceCount + 3]);
+        faces.push([vertIdx + 4, vertIdx + faceCount + 3, vertIdx + faceCount + 4]);
+
         if (faceCount > 5) {
             faces.push([4, 5, faceCount + 4].map(x => x + vertIdx));
             faces.push([5, faceCount + 4, faceCount + 5].map(x => x + vertIdx));
-            
+
             faces.push([5, 0, faceCount].map(x => x + vertIdx));
             faces.push([5, faceCount + 5, faceCount].map(x => x + vertIdx));
         }
@@ -165,28 +222,27 @@ export function generate_planet_mesh(planet) {
         }
     }
 
-    planet.mesh = { vertices, faces, normals, noise: noises, centers };
+    planet.mesh = { 
+        vertices, 
+        faces, 
+        normals, 
+        noise: noises, 
+        centers, 
+        distance_from_sun: planet.orbit_radius,
+        temperature: planet.temperature,
+    };
 }
 
 /*
     Construct the scene!
 */
 export function create_scene_content(seed) {
-    const planets = generate_solar_system(seed);
+    console.time("create_scene_content");
 
-    const actors = [
-        {
-            name: 'sun',
-            size: 4.5,
-            rotation_speed: 0.1,
+    const sun = generate_sun(seed);
+    const planets = generate_solar_system(seed, sun);
 
-            movement_type: 'planet',
-            orbit: null,
-
-            shader_type: 'unshaded',
-            texture_name: 'sun.jpg',
-        }
-    ].concat(planets)
+    const actors = [sun].concat(planets)
 
     for (const planet of actors) {
         generate_planet_mesh(planet);
@@ -202,6 +258,8 @@ export function create_scene_content(seed) {
     for (const actor of actors) {
         actors_by_name[actor.name] = actor
     }
+
+    console.timeEnd("create_scene_content");
 
     // Construct scene info
     return {
@@ -243,7 +301,7 @@ export class SysOrbitalMovement {
         }
 
         mat4.fromZRotation(M_selfRotation, sim_time * actor.rotation_speed + Math.PI);
-        mat4.fromScaling(M_scale, [actor.size, actor.size, actor.size]);
+        mat4.identity(M_scale);
 
         // Store the combined transform in actor.mat_model_to_world
         mat4_matmul_many(actor.mat_model_to_world, M_translation, M_orbit, M_selfRotation, M_scale);
@@ -287,6 +345,7 @@ export class SysRenderPlanetsUnshaded {
 
             // Uniforms: global data available to the shader
             uniforms: {
+                temperature: regl.prop('mesh.temperature'),
                 planet_size: regl.prop('planet_size'),
                 light_position_cam: regl.prop('light_position_cam'),
                 mat_mvp: regl.prop('mat_mvp'),
@@ -311,33 +370,24 @@ export class SysRenderPlanetsUnshaded {
         // Read frame info
         const { mat_projection, mat_view, light_position_cam } = frame_info
 
+        const mat_model_view = mat4.create()
+        const tmp = mat3.create();
+
         // For each planet, construct information needed to draw it using the pipeline
         for (const actor of scene_info.actors) {
 
             // Choose only planet using this shader
             if (actor.shader_type === 'unshaded') {
-                
-                const mat_model_view = mat4.create()
-                const mat_mvp = mat4.create()
-                const mat_normals_to_view = mat3.create()
+                const mat_mvp = actor.mat_mvp = (actor.mat_mvp ?? mat4.create());
+                const mat_normals_to_view = actor.mat_nv = (actor.mat_nv ?? mat3.create());
 
-                const tmp = mat3.create();
-
-                mat3.identity(mat_normals_to_view)
-                
                 mat4_matmul_many(mat_model_view, mat_view, actor.mat_model_to_world)
                 mat4_matmul_many(mat_mvp, mat_projection, mat_model_view);
-                
-                mat3.fromMat4(mat_normals_to_view, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), mat_model_view)));
 
-                
-                mat4_matmul_many(tmp, mat_projection, mat_view)
+                mat3.fromMat4(mat_normals_to_view, mat4.invert(tmp, mat4.transpose(tmp, mat_model_view)));
 
-                actor.mvp = mat_mvp;
-		        // Calculate light position in camera frame
-		        //vec3.transformMat4(light_position_cam, [0,0,0], tmp)
 
-                const shaders = actor.name === 'sun' ? { 
+                const shaders = actor.name === 'sun' ? {
                     vert: this.resources['sun.vert.glsl'],
                     frag: this.resources['sun.frag.glsl'],
                 } : {
@@ -347,7 +397,7 @@ export class SysRenderPlanetsUnshaded {
 
                 entries_to_draw.push({
                     mesh: actor.mesh,
-                    planet_size: actor.size ?? 0,
+                    planet_size: actor.size,
                     light_position_cam,
                     mat_model_view,
                     mat_mvp: mat_mvp,
