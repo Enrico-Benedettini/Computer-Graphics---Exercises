@@ -45,12 +45,20 @@ export class SysRenderMesh {
 
         // For each planet, construct information needed to draw it using the pipeline
         for (const mesh of scene_info.meshes) {
-            const mat_mvp = mesh.mat_mvp = (mesh.mat_mvp ?? mat4.create());
+            const mesh_scale = mesh.scale ?? 0.2;
 
-            mat4.fromTranslation(mat_mvp, mesh.translation)
+            const scale = mat4.fromScaling(mat4.create(), vec3.fromValues(mesh_scale, mesh_scale, mesh_scale))
+            const translation = mat4.fromTranslation(mat4.create(), mesh.translation)
 
-            mat4.multiply(mat_mvp, mat_mvp, mesh_scale);
-            mat4.multiply(mat_mvp, mesh.parent.mat_mvp, mat_mvp);
+            const xRotation = mat4.fromXRotation(mat4.create(), Math.PI / 2.)
+            const zRotation = mat4.fromZRotation(mat4.create(), mesh.rotation.phi)
+            const yRotation = mat4.fromYRotation(mat4.create(), mesh.rotation.theta)
+
+            const mat_mvp = mat4.create()
+
+            mat4_matmul_many(mat_mvp, 
+                mat_projection, mat_view, 
+                mesh.parent.mat_model_to_world, translation, zRotation, yRotation, xRotation, scale);
 
             entries_to_draw.push({
 				mesh: this.resources[mesh.name],

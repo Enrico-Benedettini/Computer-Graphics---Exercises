@@ -77,6 +77,7 @@ function generate_solar_system(seed, sun) {
             texture_name: 'earth_day.jpg',
             seed: rand(),
             mat_mvp: mat4.create(),
+            mat_mv: mat4.create(),
             temperature: compute_temperature(sun.temperature, sun.size, planet_distance),
         });
 
@@ -88,6 +89,25 @@ function generate_solar_system(seed, sun) {
     return planets;
 }
 
+export function spawn_mesh_on_planet(planet, tileNormal) {
+    const normalVector = vec3.normalize(vec3.create(), tileNormal);
+
+    const theta = Math.acos(normalVector[2]);
+    const phi = Math.atan2(normalVector[1], normalVector[0]);
+
+    console.log(normalVector, theta, phi);
+    
+    planet.actors.push({
+        name: 'rocksA_forest.obj',
+        parent: planet,
+        translation: tileNormal,
+        mat_mvp: mat4.create(),
+        rotation: {
+            phi,
+            theta,
+        }
+    });
+}
 
 export function generate_planet_mesh(planet) {
     if (typeof planet !== 'object' || planet.length != undefined) {
@@ -102,7 +122,7 @@ export function generate_planet_mesh(planet) {
 
     planet.actors = [];
 
-    const sphere = new Hexasphere(planet.size, Math.ceil(planet.size * 1.7), 1.);
+    const sphere = new Hexasphere(planet.size, Math.ceil(planet.size * 1.2), 1.);
 
     const noise_speed = 1.4 / planet.size;
 
@@ -139,9 +159,9 @@ export function generate_planet_mesh(planet) {
         ];
 
         const perp_normal = [
-            Number(tile.centerPoint.x),
-            Number(tile.centerPoint.y),
-            Number(tile.centerPoint.z),
+            Number(tile.centerPoint.x) + additionalHeight[0],
+            Number(tile.centerPoint.y) + additionalHeight[1],
+            Number(tile.centerPoint.z) + additionalHeight[2],
         ];
 
         // Top tiles
@@ -150,7 +170,7 @@ export function generate_planet_mesh(planet) {
                 Number(boundary.x) + additionalHeight[0],
                 Number(boundary.y) + additionalHeight[1],
                 Number(boundary.z) + additionalHeight[2],
-            ]
+            ];
             vertices.push(vert)
             normals.push(tileNoise > 0. ? perp_normal : vert);
             noises.push(tileNoise);
@@ -169,14 +189,7 @@ export function generate_planet_mesh(planet) {
             continue;
         }
 
-        //if (Math.random() < 0.2)
-        //    planet.actors.push({
-        //        name: 'rocksA_forest.obj',
-        //        parent: planet,
-        //        translation: centerPoint,
-        //        mat_mvp: mat4.create(),
-        //    })
-
+        // spawn_mesh_on_planet(planet, perp_normal);
 
         const border_normal = [
             Number(tile.centerPoint.x),
@@ -377,15 +390,21 @@ export class SysRenderPlanetsUnshaded {
         for (const actor of scene_info.actors) {
 
             // Choose only planet using this shader
-            if (actor.shader_type === 'unshaded') {
-                const mat_mvp = actor.mat_mvp = (actor.mat_mvp ?? mat4.create());
-                const mat_normals_to_view = actor.mat_nv = (actor.mat_nv ?? mat3.create());
+            if (actor.shader_type === 'unshaded') { 
+                const mat_model_view = mat4.create()
+                const mat_mvp = mat4.create()
+                const mat_normals_to_view = mat3.create()
+
+                mat3.identity(mat_normals_to_view)
 
                 mat4_matmul_many(mat_model_view, mat_view, actor.mat_model_to_world)
                 mat4_matmul_many(mat_mvp, mat_projection, mat_model_view);
 
-                mat3.fromMat4(mat_normals_to_view, mat4.invert(tmp, mat4.transpose(tmp, mat_model_view)));
+                mat3.fromMat4(mat_normals_to_view, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), mat_model_view)));
 
+                actor.mvp = mat_mvp;
+		        // Calculate light position in camera frame
+		        //vec3.transformMat4(light_position_cam, [0,0,0], tmp)
 
                 const shaders = actor.name === 'sun' ? {
                     vert: this.resources['sun.vert.glsl'],

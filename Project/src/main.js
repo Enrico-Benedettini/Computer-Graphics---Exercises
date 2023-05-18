@@ -330,7 +330,7 @@ async function main() {
         }
 
         // Set the whole image to black
-        regl.clear({ color: [0.1, 0.1, 0.1, 1] });
+        regl.clear({ color: [0.05, 0.05, 0.1, 1] });
 
         sys_render_unshaded.render(frame_info, scene_info)
 
