@@ -38,7 +38,8 @@ bool trace_ray(vec3 start, vec3 direction)
 
             float delta = b * b - 4. * a * c;
 
-            if (delta >= 0.) {
+            if (delta >= 0.) 
+            {
                 float sqrtDelta = sqrt(delta);
                 float t1 = (-b + sqrtDelta) / (2. * a);
                 float t2 = (-b - sqrtDelta) / (2. * a);
@@ -116,7 +117,7 @@ void main()
     float diffuse = 0.;
     float specular = 0.;
     
-    bool is_in_shadow = trace_ray(x + 1.0001 * normalize(l), l);
+    bool is_in_shadow = trace_ray(x + 1.01 * normalize(l), l);
     if (!is_in_shadow)
     {
         diffuse = compute_diffuse();

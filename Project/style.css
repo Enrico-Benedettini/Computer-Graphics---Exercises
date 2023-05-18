@@ -103,7 +103,7 @@ The various units of measurement available in CSS:
 	margin-left: 0.25rem;
 	margin-right: 0.25rem;
 
-	border: white 2px solid;
+	border: white 1px solid;
 	border-radius: 0.5rem;
 }
 
@@ -114,4 +114,34 @@ The various units of measurement available in CSS:
 
 .hidden {
 	display: none;
+}
+
+#focus {
+    z-index: 2; 
+    position:absolute; 
+    top: 20px; 
+    right: 20px; 
+    width: 200px; 
+    border: 1px solid black;
+    border-radius: 10px;
+    padding: 0 10px;
+    padding-bottom: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+#focus p {
+    color: white;
+}
+
+#focus ul {
+    display: flex;
+    flex-direction: column;
+}
+
+#focus li {
+    border-color: white;
+    color: white;
+    border-width: 1;
+    margin-top: 3px;
+    font-weight: 100;
 }

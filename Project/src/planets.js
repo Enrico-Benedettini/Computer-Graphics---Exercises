@@ -6,7 +6,7 @@ import { mulberry32 } from './utils.js'
 import { Hexasphere } from '../lib/hexasphere/src/hexasphere.js'
 
 const MIN_PLANET_COUNT = 1;
-const MAX_PLANET_COUNT = 20;
+const MAX_PLANET_COUNT = 10;
 
 const vec3_tmp1 = vec3.create();
 const vec3_tmp2 = vec3.create();
@@ -67,7 +67,7 @@ function generate_moons(parent, count, rand) {
             seed: (i + 3) * parent.seed,
             mat_mvp: mat4.create(),
             mat_mv: mat4.create(),
-            temperature: parent.temperature,
+            temperature: parent.temperature / 2.,
         })
 
         moon_distance += rand(10, 40) / 10.;
@@ -121,7 +121,7 @@ function generate_solar_system(seed, sun) {
         let moons = [];
         let moonMaxOrbit = 0;
 
-        const moon_count = Math.max(0, rand(9, 14) - 10);
+        const moon_count = Math.max(0, rand(6, 13) - 10);
         if (moon_count > 0) {
             moons = generate_moons(planet, moon_count, rand);
             planets.push(...moons);
@@ -179,6 +179,8 @@ export function generate_planet_mesh(planet) {
 
     const nullVector = [0, 0, 0];
 
+    const is_moon = planet.name.includes('moon');
+
     for (const tile of sphere.tiles) {
 
         let tileNoise = Math.max(0, noise.perlin3(
@@ -189,6 +191,10 @@ export function generate_planet_mesh(planet) {
 
         if (tileNoise > 0) {
             tileNoise += 0.0015 * planet.size;
+        }
+
+        if (is_moon) {
+            tileNoise += 0.01;
         }
 
         const additionalHeight = planet.name === 'sun' ? nullVector : [
@@ -419,7 +425,7 @@ export const compute_transforms = (frame_info, scene_info) =>
         }
     }
 
-    for (let i = planetsInfo.length; i < 20; ++i) {
+    for (let i = planetsInfo.length; i < 40; ++i) {
         planetsInfo.push({
             size: 0.,
             location: vec4.create(),
@@ -448,7 +454,7 @@ export class SysRenderPlanetsUnshaded {
             planet_center: regl.prop('planet_center'),
             mat_model_view: regl.prop('mat_model_view'),
             distance_from_sun: regl.prop('distance_from_sun'),
-        }, new Uint8Array(20).reduce((acc, val, index) => {
+        }, new Uint8Array(40).reduce((acc, val, index) => {
             acc['planet_sizes['+index+']'] = regl.prop('planet_sizes['+index+']');
             acc['planet_locations['+index+']'] = regl.prop('planet_locations['+index+']');
             return acc;
