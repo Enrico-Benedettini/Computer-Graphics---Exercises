@@ -122,7 +122,7 @@ export function generate_planet_mesh(planet) {
 
     planet.actors = [];
 
-    const sphere = new Hexasphere(planet.size, Math.ceil(planet.size * 1.2), 1.);
+    const sphere = new Hexasphere(planet.size, Math.ceil(planet.size * 1.5), 1.);
 
     const noise_speed = 1.4 / planet.size;
 
@@ -172,7 +172,7 @@ export function generate_planet_mesh(planet) {
                 Number(boundary.z) + additionalHeight[2],
             ];
             vertices.push(vert)
-            normals.push(tileNoise > 0. ? perp_normal : vert);
+            normals.push(tileNoise > 0. && false ? perp_normal : vert);
             noises.push(tileNoise);
             centers.push(centerPoint)
         }
@@ -372,21 +372,12 @@ export class SysRenderPlanetsUnshaded {
         })
     }
 
-    render(frame_info, scene_info) {
-        /* 
-        We will collect all objects to draw with this pipeline into an array
-        and then run the pipeline on all of them.
-        This way the GPU does not need to change the active shader between objects.
-        */
-        const entries_to_draw = []
-
-        // Read frame info
+    compute_transforms(frame_info, scene_info) {
         const { mat_projection, mat_view, light_position_cam } = frame_info
+        
+        const center_points = [];
+        const sizes = [];
 
-        const mat_model_view = mat4.create()
-        const tmp = mat3.create();
-
-        // For each planet, construct information needed to draw it using the pipeline
         for (const actor of scene_info.actors) {
 
             // Choose only planet using this shader
@@ -402,9 +393,36 @@ export class SysRenderPlanetsUnshaded {
 
                 mat3.fromMat4(mat_normals_to_view, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), mat_model_view)));
 
-                actor.mvp = mat_mvp;
-		        // Calculate light position in camera frame
-		        //vec3.transformMat4(light_position_cam, [0,0,0], tmp)
+                actor.mat_mvp = mat_mvp;
+                actor.mat_normals_to_view = mat_normals_to_view;
+                actor.mat_model_view = mat_model_view;
+
+                const center_point = vec4.create();
+
+                sizes.push(actor.size);
+                center_points.push(vec4.transformMat4(vec4.create(), center_point, mat_model_view))
+            }
+        }
+        
+        return { center_points, sizes };
+    }
+
+    render(frame_info, scene_info) {
+        /* 
+        We will collect all objects to draw with this pipeline into an array
+        and then run the pipeline on all of them.
+        This way the GPU does not need to change the active shader between objects.
+        */
+        const entries_to_draw = []
+
+        // Read frame info
+        const { mat_projection, mat_view, light_position_cam } = frame_info
+
+        // For each planet, construct information needed to draw it using the pipeline
+        for (const actor of scene_info.actors) {
+
+            // Choose only planet using this shader
+            if (actor.shader_type === 'unshaded') { 
 
                 const shaders = actor.name === 'sun' ? {
                     vert: this.resources['sun.vert.glsl'],
@@ -418,9 +436,9 @@ export class SysRenderPlanetsUnshaded {
                     mesh: actor.mesh,
                     planet_size: actor.size,
                     light_position_cam,
-                    mat_model_view,
-                    mat_mvp: mat_mvp,
-                    mat_normals: mat_normals_to_view,
+                    mat_model_view: actor.mat_model_view,
+                    mat_mvp: actor.mat_mvp,
+                    mat_normals: actor.mat_normals_to_view,
                     ...shaders
                 });
             }
