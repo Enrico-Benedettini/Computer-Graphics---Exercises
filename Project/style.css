@@ -144,4 +144,13 @@ The various units of measurement available in CSS:
     border-width: 1;
     margin-top: 3px;
     font-weight: 100;
+    cursor: pointer;
+}
+
+#seed_input {
+    background: rgba(0, 0, 0, 0);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 4px 8px;
+    color: #bbb;
 }

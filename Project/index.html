@@ -26,6 +26,7 @@
 	<pre id="debug-text"></pre>
     <p id="seed">
         Seed: 
+        <input id="seed_input"/>
     </p>
 </div>
 
@@ -36,5 +37,20 @@
     <ul id="view-select">
     </ul>
 </div>
+<script>
+    function reload_with_seed(value) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('seed', value);
+        window.location.href = url.toString();
+    }
+
+    const seed_input = document.getElementById('seed_input');
+    seed_input.value = new URLSearchParams(window.location.search).get('seed') ?? 120;
+    seed_input.addEventListener("keyup", (event) => {
+        if (event.key === "Enter") {
+            reload_with_seed(seed_input.value)
+        }
+    });
+</script>
 </body>
 </html>

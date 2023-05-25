@@ -12,6 +12,12 @@ import { create_scene_content, SysOrbitalMovement, SysRenderPlanetsUnshaded, com
 import { SysRenderMesh } from "./mesh.js"
 
 
+
+function get_seed() {
+    return new URLSearchParams(window.location.search).get('seed') ?? 120;
+}
+
+
 async function load_resources(regl) {
     /*
     The textures fail to load when the site is opened from local file (file://) due to "cross-origin".
@@ -75,7 +81,6 @@ async function load_resources(regl) {
 
     return resources
 }
-
 const z_rot = mat4.create();
 const y_rot = mat4.create();
 const cam_rot = mat4.create();
@@ -100,9 +105,9 @@ async function main() {
     ---------------------------------------------------------------*/
     const resources = await load_resources(regl)
 
-    const seed = 120;
+    const seed = new URLSearchParams(window.location.search).get('seed') * 1 ?? 120;;
 
-    document.getElementById('seed').innerHTML = `Seed: ${seed}`
+    // document.getElementById('seed').innerHTML = `Seed: ${seed}`
     const scene_info = create_scene_content(seed)
 
     const sys_orbital_movement = new SysOrbitalMovement()
@@ -215,6 +220,8 @@ async function main() {
         UI
     ---------------------------------------------------------------*/
 
+    let time_multiplication = 1.;
+
     // Debug overlay
     const debug_overlay = document.getElementById('debug-overlay')
     const debug_text = document.getElementById('debug-text')
@@ -270,6 +277,27 @@ async function main() {
     }
 
 
+    register_keyboard_action('f', () => {
+        const speed = 3.;
+        if (time_multiplication == speed) {
+            time_multiplication = 1.;
+        }
+        else {
+            time_multiplication = speed;
+        }
+    })
+    register_keyboard_action('n', () => {
+        time_multiplication = 1.;
+    })
+    register_keyboard_action('l', () => {
+        const speed = 0.2;
+        if (time_multiplication == speed) {
+            time_multiplication = 1.;
+        }
+        else {
+            time_multiplication = speed;
+        }
+    })
 
     /*---------------------------------------------------------------
         Render loop
@@ -282,8 +310,8 @@ async function main() {
         const { mat_view, mat_projection, mat_turntable, light_position_cam, light_position_world, camera_position } = frame_info
 
         if (!is_paused) {
-            const dt = frame.time - prev_regl_time
-            scene_info.sim_time += dt
+            const dt = frame.time - prev_regl_time;
+            scene_info.sim_time += dt * time_multiplication;
         }
         frame_info.sim_time = scene_info.sim_time
         prev_regl_time = frame.time;

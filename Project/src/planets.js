@@ -57,11 +57,11 @@ function generate_moons(parent, count, rand) {
             orbit: parent.name,
             movement_type: 'moon',
 
-            rotation_speed: rand(10, 300) / 1500 / Math.sqrt(moon_size) * Math.sqrt(moon_distance),
+            rotation_speed: rand(10, 400) / 1500 / Math.sqrt(moon_size) * Math.sqrt(moon_distance) * (rand(0, 2) < 1 ? -1 : 1),
             orbit_radius: moon_distance,
-            orbit_speed: rand(80, 200) / 100. / Math.sqrt(moon_distance),
+            orbit_speed: rand(80, 300) / 100. / Math.sqrt(moon_distance) * (rand(0, 2)< 1 ? -1 : 1),
             orbit_phase: rand(0, 360) / 10. * Math.PI,
-            orbital_inclination: (rand(0, 14) - 7) / 180. * Math.PI,
+            orbital_inclination: (rand(0, 54) - 27) / 180. * Math.PI,
 
             shader_type: 'unshaded',
             seed: (i + 3) * parent.seed,
@@ -121,10 +121,9 @@ function generate_solar_system(seed, sun) {
         let moons = [];
         let moonMaxOrbit = 0;
 
-        const moon_count = Math.max(0, rand(6, 13) - 10);
+        const moon_count = Math.max(0, rand(5, 15) - 10);
         if (moon_count > 0) {
             moons = generate_moons(planet, moon_count, rand);
-            planets.push(...moons);
             moonMaxOrbit = moons[moons.length - 1].orbit_radius;
         }
 
@@ -136,6 +135,8 @@ function generate_solar_system(seed, sun) {
     }
 
     console.timeEnd("generate_solar_system");
+
+    console.log("Solar system has " + planets.length + " planets.", planets);
 
     return planets;
 }
@@ -171,7 +172,9 @@ export function generate_planet_mesh(planet) {
 
     planet.actors = [];
 
-    const sphere = new Hexasphere(planet.size, Math.ceil(planet.size * 1.5), 1.);
+    const planet_division = Math.ceil(planet.name.includes('moon') ? planet.size * 2.5 : planet.size * 1.7);
+
+    const sphere = new Hexasphere(planet.size, planet_division, 1.);
 
     const noise_speed = 1.4 / planet.size;
 
@@ -246,20 +249,15 @@ export function generate_planet_mesh(planet) {
 
         // spawn_mesh_on_planet(planet, perp_normal);
 
-        const border_normal = [
-            Number(tile.centerPoint.x),
-            Number(tile.centerPoint.y),
-            Number(tile.centerPoint.z),
-        ];
-
         // Borders
         for (const boundary of tile.boundary) {
-            normals.push(border_normal);
-            vertices.push([
+            const border = [
                 Number(boundary.x),
                 Number(boundary.y),
                 Number(boundary.z),
-            ])
+            ]
+            normals.push(border);
+            vertices.push(border)
             noises.push(tileNoise);
             centers.push(centerPoint)
         }
@@ -298,6 +296,7 @@ export function generate_planet_mesh(planet) {
         centers, 
         distance_from_sun: planet.orbit_radius,
         temperature: planet.temperature,
+        is_moon: planet.name.includes('moon'),
     };
 }
 
@@ -389,6 +388,8 @@ export class SysOrbitalMovement {
 
 }
 
+const MAX_PLANET_RAY_COUNT = 20;
+
 export const compute_transforms = (frame_info, scene_info) => 
 {
     const { mat_projection, mat_view, light_position_cam } = frame_info
@@ -425,7 +426,7 @@ export const compute_transforms = (frame_info, scene_info) =>
         }
     }
 
-    for (let i = planetsInfo.length; i < 40; ++i) {
+    for (let i = planetsInfo.length; i < MAX_PLANET_RAY_COUNT; ++i) {
         planetsInfo.push({
             size: 0.,
             location: vec4.create(),
@@ -454,7 +455,8 @@ export class SysRenderPlanetsUnshaded {
             planet_center: regl.prop('planet_center'),
             mat_model_view: regl.prop('mat_model_view'),
             distance_from_sun: regl.prop('distance_from_sun'),
-        }, new Uint8Array(40).reduce((acc, val, index) => {
+            is_moon: regl.prop('mesh.is_moon'),
+        }, new Uint8Array(MAX_PLANET_RAY_COUNT).reduce((acc, val, index) => {
             acc['planet_sizes['+index+']'] = regl.prop('planet_sizes['+index+']');
             acc['planet_locations['+index+']'] = regl.prop('planet_locations['+index+']');
             return acc;

@@ -21,13 +21,14 @@ uniform mat4 mat_mvp;
 uniform mat3 mat_normals;
 uniform vec4 light_position_cam;
 uniform mat4 mat_model_view;
+uniform float planet_size;
 
 
 void main() {
     height = noise;
     verticalDistance = abs(center.z);
 
-    tileCenterDistance = length(position - center * 1.01);
+    tileCenterDistance = length(position * 1.001 - center);
     
     x = ((mat_model_view * vec4(position, 1.)).xyz);
     n = normalize(  mat_normals * normalize(normal));
