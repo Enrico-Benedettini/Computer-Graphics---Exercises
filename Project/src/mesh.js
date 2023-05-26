@@ -27,8 +27,8 @@ export class SysRenderMesh {
 	
 			// Uniforms: global data available to the shader
 			// uniforms: this.pipeline_uniforms(regl),	
-            vert: this.resources['unshaded.vert.glsl'],
-            frag: this.resources['unshaded.frag.glsl'],
+            vert: regl.prop('mesh.vert_shader'),
+            frag: regl.prop('mesh.frag_shader')
 		})
 	}
 

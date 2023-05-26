@@ -247,8 +247,6 @@ export function generate_planet_mesh(planet) {
             continue;
         }
 
-
-
         // spawn_mesh_on_planet(planet, perp_normal);
 
         // Borders
