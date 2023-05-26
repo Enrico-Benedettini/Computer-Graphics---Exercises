@@ -161,7 +161,8 @@ export function spawn_mesh_on_planet(planet, tileNormal, mesh) {
 
 const rotate_leaf_90_deg = (mesh, facesCount) => {
     const verts = mesh.vertices.map(v => [v[2], v[1], -v[0]]);
-    return { vertices: verts, normals: verts, faces: mesh.faces.map(f => f.map(i => i + facesCount)) }
+    const normals =  mesh.normals.map(v => [v[2], v[1], -v[0]]);
+    return { vertices: verts, normals, faces: mesh.faces.map(f => f.map(i => i + facesCount)) }
 }
 
 
@@ -170,9 +171,12 @@ const spawn_leaf = (height) => {
 
     const plant_divisions = 10;
 
-    const plant_z_function = x => x * 1.2;
+    const height_length = vec3.length(height);
+
+    const plant_z_function = x => x * (1. + height_length * 1.2);
     const plant_x_function = x => Math.sin(2 * Math.pow(x, .5));
-    const plant_y_function = x => -Math.cos(2.4 * x) * (0.6 + 2 * vec3.length(height));
+    const plant_y_function = x => -Math.cos(2.4 * x) * (0.3 + 2.5 * height_length);
+    const normal_function = x => 2.4 * Math.sin(2.4 * x) * (0.3 + 2.5 * height_length)
 
     const vertices = [];
     const normals = [];
@@ -184,19 +188,19 @@ const spawn_leaf = (height) => {
         const plant_height = plant_z_function(i * step);
         const plant_width = plant_x_function(i * step);
         const plant_y = plant_y_function(i * step);
+        const normal = normal_function(i * step);
 
         const right = [plant_width, plant_y, plant_height];
         const left = [-plant_width, plant_y, plant_height];
-        const center = [0, plant_y, plant_height];
 
         vertices.push(left, right);
-        //normals.push(left, right);
+        normals.push(normal, normal);
     }
 
     vertices[vertices.length - 2][0] = 0;
     vertices[vertices.length - 1][0] = 0;
 
-    vertices.forEach(x => x[1] += vec3.length(height) + 0.4)
+    vertices.forEach(x => x[1] += height_length + 0.4)
 
     for (let i = 0; i < plant_divisions - 1; ++i) {
         let vertexCount = i * 2;
@@ -208,7 +212,7 @@ const spawn_leaf = (height) => {
 }
 
 export function spawn_plant_for_tile(planet, tile, height, rand) {
-    const plant_rand = rand(0, Math.ceil(vec3.squaredLength(height) * 1500));
+    const plant_rand = rand(0, Math.ceil(vec3.squaredLength(height) * 2500));
     if (plant_rand) {
         return;
     }

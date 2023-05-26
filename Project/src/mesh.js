@@ -3,6 +3,8 @@ import {mat4_matmul_many} from "./icg_math.js"
 
 const mesh_scale = mat4.fromScaling(mat4.create(), [0.2, 0.2, 0.2]);
 
+const MAX_PLANET_RAY_COUNT = 20;
+
 export class SysRenderMesh {
 
 	constructor(regl, resources) {
@@ -12,17 +14,27 @@ export class SysRenderMesh {
 	}
     
 	init_pipeline(regl) {
+
+        const uniforms = Object.assign({
+            mat_mvp: regl.prop('mat_mvp'),
+            mat_normals: regl.prop('mat_normals'),
+            light_position_cam: regl.prop('light_position_cam'),
+            mat_model_view: regl.prop('mat_model_view'),
+        }, new Uint8Array(MAX_PLANET_RAY_COUNT).reduce((acc, val, index) => {
+            acc['planet_sizes['+index+']'] = regl.prop('planet_sizes['+index+']');
+            acc['planet_locations['+index+']'] = regl.prop('planet_locations['+index+']');
+            return acc;
+          }, {}));
+
 		this.pipeline = regl({
 			attributes: {
-				vertex_normal: regl.prop('mesh.vertex_normals'),
+				normal: regl.prop('mesh.vertex_normals'),
                 position: regl.prop('mesh.vertex_positions'),
 			},
 			// Faces, as triplets of vertex indices
 			elements: regl.prop('mesh.faces'),
 
-            uniforms: {
-                mat_mvp: regl.prop('mat_mvp'),
-            },
+            uniforms,
 	
 			// Uniforms: global data available to the shader
 			// uniforms: this.pipeline_uniforms(regl),	
@@ -31,7 +43,7 @@ export class SysRenderMesh {
 		})
 	}
 
-    render(frame_info, scene_info) {
+    render(frame_info, scene_info, planets_info) {
         /* 
         We will collect all objects to draw with this pipeline into an array
         and then run the pipeline on all of them.
@@ -54,10 +66,15 @@ export class SysRenderMesh {
             const yRotation = mat4.fromYRotation(mat4.create(), mesh.rotation.theta)
 
             const mat_mvp = mat4.create()
+            const mat_normals_to_view = mat3.create()
+            const mat_view_model = mat4.create();
 
-            mat4_matmul_many(mat_mvp, 
-                mat_projection, mat_view, 
+            mat4_matmul_many(mat_view_model, mat_view, 
                 mesh.parent.mat_model_to_world, translation, zRotation, yRotation, xRotation, scale);
+
+            mat4_matmul_many(mat_mvp, mat_projection, mat_view_model);
+
+            mat3.fromMat4(mat_normals_to_view, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), mat_view_model)));
 
             let final_mesh = {};
 
@@ -85,6 +102,11 @@ export class SysRenderMesh {
                     ...final_mesh,
                 },
 				mat_mvp: mat_mvp,
+                mat_model_view: mat_view_model,
+                mat_normals: mat_normals_to_view,
+                light_position_cam,
+                planet_sizes: planets_info.map(x => vec4.fromValues(x.size ?? 0., 0, 0, 0)),
+                planet_locations: planets_info.map(x => x.location),
 			})
         }
         
