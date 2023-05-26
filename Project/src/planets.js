@@ -136,7 +136,7 @@ function generate_solar_system(seed, sun) {
 
     console.timeEnd("generate_solar_system");
 
-    console.log("Solar system has " + planets.length + " planets.", planets);
+    console.log("Solar system has " + planets.length + " planets.");
 
     return planets;
 }

@@ -60,8 +60,19 @@ export class SysRenderMesh {
                 mat_projection, mat_view, 
                 mesh.parent.mat_model_to_world, translation, zRotation, yRotation, xRotation, scale);
 
+            let final_mesh = {};
+
+            if (mesh.name) {
+                final_mesh = this.resources[mesh.name];
+            }
+            else {
+                final_mesh.vertex_normals = mesh.normals;
+                final_mesh.vertex_position = mesh.vertices;
+                final_mesh.faces = mesh.faces;
+            }
+
             entries_to_draw.push({
-				mesh: this.resources[mesh.name],
+				mesh: final_mesh,
 				mat_mvp: mat_mvp,
 			})
         }
