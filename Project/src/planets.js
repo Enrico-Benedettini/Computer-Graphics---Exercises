@@ -141,14 +141,14 @@ function generate_solar_system(seed, sun) {
     return planets;
 }
 
-export function spawn_mesh_on_planet(planet, tileNormal) {
+export function spawn_mesh_on_planet(planet, tileNormal, mesh) {
     const normalVector = vec3.normalize(vec3.create(), tileNormal);
 
     const theta = Math.acos(normalVector[2]);
     const phi = Math.atan2(normalVector[1], normalVector[0]);
     
     planet.actors.push({
-        name: 'rocksA_forest.obj',
+        ...mesh,
         parent: planet,
         translation: tileNormal,
         mat_mvp: mat4.create(),
@@ -246,6 +246,8 @@ export function generate_planet_mesh(planet) {
         if (tileNoise <= 0. || planet.name === 'sun') {
             continue;
         }
+
+
 
         // spawn_mesh_on_planet(planet, perp_normal);
 
