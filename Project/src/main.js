@@ -289,6 +289,9 @@ async function main() {
     register_keyboard_action('n', () => {
         time_multiplication = 1.;
     })
+    register_keyboard_action('b', () => {
+        time_multiplication *= -1.;
+    })
     register_keyboard_action('l', () => {
         const speed = 0.2;
         if (time_multiplication == speed) {

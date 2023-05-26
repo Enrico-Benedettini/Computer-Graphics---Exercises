@@ -238,8 +238,6 @@ export function spawn_plant_for_tile(planet, tile, height, rand) {
         faces: leafMesh0.faces.concat(leafMesh1.faces).concat(leafMesh2.faces).concat(leafMesh3.faces),
     };
 
-    console.log(leafMesh0, mesh)
-
     spawn_mesh_on_planet(planet, tile, {
         ...mesh,
         frag: 'unshaded.frag.glsl',
@@ -277,7 +275,7 @@ export function generate_planet_mesh(planet) {
 
     for (const tile of sphere.tiles) {
 
-        let tileNoise = Math.max(0, noise.perlin3(
+        let tileNoise = Math.max(is_moon ? -10 : 0, noise.perlin3(
             tile.centerPoint.x * noise_speed + noise_offset,
             tile.centerPoint.y * noise_speed,
             tile.centerPoint.z * noise_speed
@@ -321,7 +319,7 @@ export function generate_planet_mesh(planet) {
                 Number(boundary.z) + additionalHeight[2],
             ];
             vertices.push(vert)
-            normals.push(tileNoise > 0. && false ? perp_normal : vert);
+            normals.push(vert);
             noises.push(tileNoise);
             centers.push(centerPoint)
         }
@@ -334,7 +332,7 @@ export function generate_planet_mesh(planet) {
             faces.push([vertIdx, vertIdx + 4, vertIdx + 5]);
         }
 
-        if (tileNoise <= 0. || planet.name === 'sun') {
+        if ((!is_moon && tileNoise <= 0.) || planet.name === 'sun') {
             continue;
         }
 
