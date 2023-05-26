@@ -159,6 +159,91 @@ export function spawn_mesh_on_planet(planet, tileNormal, mesh) {
     });
 }
 
+const rotate_leaf_90_deg = (mesh, facesCount) => {
+    const verts = mesh.vertices.map(v => [v[2], v[1], -v[0]]);
+    return { vertices: verts, normals: verts, faces: mesh.faces.map(f => f.map(i => i + facesCount)) }
+}
+
+
+const spawn_leaf = (height) => {
+    const plant_height = 2.48;
+
+    const plant_divisions = 10;
+
+    const plant_z_function = x => x * 1.2;
+    const plant_x_function = x => Math.sin(2 * Math.pow(x, .5));
+    const plant_y_function = x => -Math.cos(2.4 * x) * (0.6 + 2 * vec3.length(height));
+
+    const vertices = [];
+    const normals = [];
+    const faces = [];
+
+    const step = plant_height / plant_divisions;
+
+    for (let i = 0; i < plant_divisions; ++i) {
+        const plant_height = plant_z_function(i * step);
+        const plant_width = plant_x_function(i * step);
+        const plant_y = plant_y_function(i * step);
+
+        const right = [plant_width, plant_y, plant_height];
+        const left = [-plant_width, plant_y, plant_height];
+        const center = [0, plant_y, plant_height];
+
+        vertices.push(left, right);
+        //normals.push(left, right);
+    }
+
+    vertices[vertices.length - 2][0] = 0;
+    vertices[vertices.length - 1][0] = 0;
+
+    vertices.forEach(x => x[1] += vec3.length(height) + 0.4)
+
+    for (let i = 0; i < plant_divisions - 1; ++i) {
+        let vertexCount = i * 2;
+        faces.push([vertexCount, vertexCount + 1, vertexCount + 2]);
+        faces.push([vertexCount + 1, vertexCount + 3, vertexCount + 2]);
+    }
+
+    return { faces, vertices, normals };
+}
+
+export function spawn_plant_for_tile(planet, tile, height, rand) {
+    const plant_rand = rand(0, Math.ceil(vec3.squaredLength(height) * 1500));
+    if (plant_rand) {
+        return;
+    }
+
+    const leafMesh0 = spawn_leaf(height);
+    const leafMesh1 = rotate_leaf_90_deg(leafMesh0, leafMesh0.vertices.length)
+    const leafMesh2 = rotate_leaf_90_deg(leafMesh1, leafMesh0.vertices.length)
+    const leafMesh3 = rotate_leaf_90_deg(leafMesh2, leafMesh0.vertices.length)
+    
+    const mesh = {
+        vertices: [
+            ...leafMesh0.vertices, 
+            ...leafMesh1.vertices, 
+            ...leafMesh2.vertices, 
+            ...leafMesh3.vertices,
+        ],
+        normals: [
+            ...leafMesh0.normals, 
+            ...leafMesh1.normals, 
+            ...leafMesh2.normals, 
+            ...leafMesh3.normals,
+        ],
+        faces: leafMesh0.faces.concat(leafMesh1.faces).concat(leafMesh2.faces).concat(leafMesh3.faces),
+    };
+
+    console.log(leafMesh0, mesh)
+
+    spawn_mesh_on_planet(planet, tile, {
+        ...mesh,
+        frag: 'unshaded.frag.glsl',
+        vert: 'unshaded.vert.glsl',
+        scale: 0.7,
+    });
+}
+
 export function generate_planet_mesh(planet) {
     if (typeof planet !== 'object') {
         return;
@@ -183,6 +268,8 @@ export function generate_planet_mesh(planet) {
     const nullVector = [0, 0, 0];
 
     const is_moon = planet.name.includes('moon');
+
+    const rand = mulberry32(planet.seed);
 
     for (const tile of sphere.tiles) {
 
@@ -247,7 +334,8 @@ export function generate_planet_mesh(planet) {
             continue;
         }
 
-        // spawn_mesh_on_planet(planet, perp_normal);
+        if (!is_moon)
+            spawn_plant_for_tile(planet, centerPoint, additionalHeight, rand);
 
         // Borders
         for (const boundary of tile.boundary) {
@@ -287,6 +375,8 @@ export function generate_planet_mesh(planet) {
             faces.push([4, faceCount + 4, faceCount].map(x => x + vertIdx));
         }
     }
+
+    console.log(`Planet ${planet.name} has ${planet.actors?.length ?? 0} actors.`)
 
     planet.mesh = { 
         vertices, 

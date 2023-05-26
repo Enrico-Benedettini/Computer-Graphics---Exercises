@@ -14,7 +14,6 @@ export class SysRenderMesh {
 	init_pipeline(regl) {
 		this.pipeline = regl({
 			attributes: {
-				vertex_position: regl.prop('mesh.vertex_positions'),
 				vertex_normal: regl.prop('mesh.vertex_normals'),
                 position: regl.prop('mesh.vertex_positions'),
 			},
@@ -45,7 +44,7 @@ export class SysRenderMesh {
 
         // For each planet, construct information needed to draw it using the pipeline
         for (const mesh of scene_info.meshes) {
-            const mesh_scale = mesh.scale ?? 0.2;
+            const mesh_scale = (mesh.scale ?? 1) / 5.;
 
             const scale = mat4.fromScaling(mat4.create(), vec3.fromValues(mesh_scale, mesh_scale, mesh_scale))
             const translation = mat4.fromTranslation(mat4.create(), mesh.translation)
@@ -67,12 +66,24 @@ export class SysRenderMesh {
             }
             else {
                 final_mesh.vertex_normals = mesh.normals;
-                final_mesh.vertex_position = mesh.vertices;
+                final_mesh.vertex_positions = mesh.vertices;
                 final_mesh.faces = mesh.faces;
             }
 
+            if (this.resources[mesh.frag] === undefined) {
+                console.error("Failed to find fragment " + mesh.frag);
+            }
+            
+            if (this.resources[mesh.vert] === undefined) {
+                console.error("Failed to find fragment " + mesh.frag);
+            }
+
             entries_to_draw.push({
-				mesh: final_mesh,
+				mesh: {
+                    frag_shader: this.resources[mesh.frag],
+                    vert_shader: this.resources[mesh.vert],
+                    ...final_mesh,
+                },
 				mat_mvp: mat_mvp,
 			})
         }
