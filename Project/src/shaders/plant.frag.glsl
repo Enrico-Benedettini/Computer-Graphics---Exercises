@@ -16,7 +16,7 @@ uniform vec4 planet_locations[20];
 
 uniform vec4 light_position_cam;
 
-const float shininess = 0.2;
+const float shininess = 0.8;
 
 
 bool trace_ray(vec3 start, vec3 direction) 
@@ -87,7 +87,7 @@ void main()
     }
     
     vec3 light_color = vec3(1.,1.,1.);
-    vec3 material_color = vec3(0., 154.0 / 255., 24.0 / 255.);    
+    vec3 material_color = vec3(53. / 255., 136. / 255., 86. / 255.);    
 
     vec3 ma = ambient * light_color;
 

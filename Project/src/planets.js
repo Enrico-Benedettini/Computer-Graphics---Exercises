@@ -165,9 +165,14 @@ export function spawn_mesh_on_planet(planet, tileNormal, mesh) {
     });
 }
 
-const rotate_leaf_90_deg = (mesh, facesCount) => {
-    const verts = mesh.vertices.map(v => [v[2], v[1], -v[0]]);
-    const normals =  mesh.normals.map(v => [v[2], v[1], -v[0]]);
+const rotate_leaf = (mesh, facesCount, alpha, z_func) => {
+    const rotate = (v, angle, z_func) => [
+        Math.cos(angle) * v[0] + Math.sin(angle) * v[2], 
+        z_func ? z_func(v[1]) : v[1], 
+        Math.cos(angle) * v[2] - Math.sin(angle) * v[0]
+    ]
+    const verts = mesh.vertices.map(v => rotate(v, alpha, z_func));
+    const normals =  mesh.normals.map(v => rotate(v, alpha));
     return { vertices: verts, normals, faces: mesh.faces.map(f => f.map(i => i + facesCount)) }
 }
 
@@ -285,25 +290,25 @@ function spawn_statue(name, scale, planet, tile, height, rand) {
 
 function spawn_plant_for_tile(planet, tile, height, rand) {
 
-    const leafMesh0 = spawn_leaf(height);
-    const leafMesh1 = rotate_leaf_90_deg(leafMesh0, leafMesh0.vertices.length)
-    const leafMesh2 = rotate_leaf_90_deg(leafMesh1, leafMesh0.vertices.length)
-    const leafMesh3 = rotate_leaf_90_deg(leafMesh2, leafMesh0.vertices.length)
-    
+    const leaf_count = rand(3, 8);
+
+    const angle = Math.PI * 2 / leaf_count;
+
+    const leaf0 = spawn_leaf(height);
+
+    const leaves = [leaf0];
+
+    for (let i = 1; i < leaf_count; ++i) {
+        const zOffset = (rand(0, 10) - 5) / 10;
+        const rotatedLeaf = rotate_leaf(leaves[leaves.length - 1], 
+            leaf0.vertices.length, angle, z => z + zOffset);
+        leaves.push(rotatedLeaf);
+    }
+
     const mesh = {
-        vertices: [
-            ...leafMesh0.vertices, 
-            ...leafMesh1.vertices, 
-            ...leafMesh2.vertices, 
-            ...leafMesh3.vertices,
-        ],
-        normals: [
-            ...leafMesh0.normals, 
-            ...leafMesh1.normals, 
-            ...leafMesh2.normals, 
-            ...leafMesh3.normals,
-        ],
-        faces: leafMesh0.faces.concat(leafMesh1.faces).concat(leafMesh2.faces).concat(leafMesh3.faces),
+        vertices: leaves.flatMap(l => l.vertices),
+        normals: leaves.flatMap(l => l.normals),
+        faces: leaves.flatMap(l => l.faces),
     };
 
     spawn_mesh_on_planet(planet, tile, {
@@ -355,7 +360,7 @@ function spawn_prop_for_tile(planet, tile, height_vec, rand) {
 
     // near the water
     if (scaled_height < 0.3) {
-        if (spawn_with_prob(0.08, rand, spawn_plant_for_tile, ...spawn_args)) return;
+        if (spawn_with_prob(0.18, rand, spawn_plant_for_tile, ...spawn_args)) return;
         if (spawn_with_prob(0.07, rand, spawn_small_plant_for_tile, ...spawn_args)) return;
     }
 

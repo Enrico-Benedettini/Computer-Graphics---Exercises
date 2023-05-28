@@ -155,7 +155,7 @@ The various units of measurement available in CSS:
     color: #bbb;
 }
 
-#def_state {
+.toggle {
     border: 2px solid red;
     font-size: 15px;
     padding: 4px 8px;
@@ -165,5 +165,4 @@ The various units of measurement available in CSS:
     background: rgba(255,0,0,0.1);
     margin-left: 2px;
     cursor: pointer;
-    
 }

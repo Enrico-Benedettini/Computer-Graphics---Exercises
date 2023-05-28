@@ -313,20 +313,40 @@ async function main() {
         }
     })
 
-    const deformation = document.getElementById('def_state');
-
     let with_deformation = false;
-    const toggleDeformation = () => {
-        with_deformation = !with_deformation;
-    
-        const color = with_deformation ? '#22ff44' : 'red';
-        deformation.style.borderColor = color;
-        deformation.style.color = color;
-        deformation.innerText = with_deformation ? "ON" : "OFF";
-    };
+    {
+        const deformation = document.getElementById('def_state');
 
-    deformation.addEventListener('click', toggleDeformation);
-    register_keyboard_action('d', toggleDeformation)
+        const toggleDeformation = () => {
+            with_deformation = !with_deformation;
+        
+            const color = with_deformation ? '#22ff44' : 'red';
+            deformation.style.borderColor = color;
+            deformation.style.color = color;
+            deformation.innerText = with_deformation ? "ON" : "OFF";
+        };
+
+        deformation.addEventListener('click', toggleDeformation);
+        register_keyboard_action('d', toggleDeformation)
+    }
+
+    let with_props = false;
+    {    
+        const showProps = document.getElementById('props_state');
+
+        const toggleShowProps = () => {
+            with_props = !with_props;
+        
+            const color = with_props ? '#22ff44' : 'red';
+            showProps.style.borderColor = color;
+            showProps.style.color = color;
+            showProps.innerText = with_props ? "SHOWN" : "HIDDEN";
+        };
+
+        showProps.addEventListener('click', toggleShowProps);
+        register_keyboard_action('q', toggleShowProps)
+        toggleShowProps();
+    }
 
     /*---------------------------------------------------------------
         Render loop
@@ -394,7 +414,7 @@ async function main() {
 
         sys_render_unshaded.render(frame_info, scene_info, planets_info);
 
-        if (!with_deformation) {
+        if (!with_deformation && with_props) {
             sys_render_mesh.render(frame_info, scene_info, planets_info);
         }
 
