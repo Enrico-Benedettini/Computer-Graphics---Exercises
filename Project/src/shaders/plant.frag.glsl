@@ -13,7 +13,6 @@ varying vec3 h;
 
 uniform vec4 planet_sizes[20];
 uniform vec4 planet_locations[20];
-uniform vec3 color;
 
 uniform vec4 light_position_cam;
 
@@ -88,7 +87,7 @@ void main()
     }
     
     vec3 light_color = vec3(1.,1.,1.);
-    vec3 material_color = color;    
+    vec3 material_color = vec3(0., 154.0 / 255., 24.0 / 255.);    
 
     vec3 ma = ambient * light_color;
 

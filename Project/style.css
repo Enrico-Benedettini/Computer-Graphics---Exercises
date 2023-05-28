@@ -154,3 +154,16 @@ The various units of measurement available in CSS:
     padding: 4px 8px;
     color: #bbb;
 }
+
+#def_state {
+    border: 2px solid red;
+    font-size: 15px;
+    padding: 4px 8px;
+    color: red;
+    border-radius: 8px;
+    font-weight: bold;
+    background: rgba(255,0,0,0.1);
+    margin-left: 2px;
+    cursor: pointer;
+    
+}

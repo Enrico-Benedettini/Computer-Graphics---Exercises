@@ -5,7 +5,7 @@ import { mulberry32 } from './utils.js'
 
 import { Hexasphere } from '../lib/hexasphere/src/hexasphere.js'
 
-const MIN_PLANET_COUNT = 1;
+const MIN_PLANET_COUNT = 4;
 const MAX_PLANET_COUNT = 10;
 
 const vec3_tmp1 = vec3.create();
@@ -155,7 +155,8 @@ export function spawn_mesh_on_planet(planet, tileNormal, mesh) {
         rotation: {
             phi,
             theta,
-        }
+        },
+        tile_center: tileNormal,
     });
 }
 
@@ -173,10 +174,13 @@ const spawn_leaf = (height) => {
 
     const height_length = vec3.length(height);
 
-    const plant_z_function = x => x * (1. + height_length * 1.2);
-    const plant_x_function = x => Math.sin(2 * Math.pow(x, .5));
+    const width = Math.random() + 0.1;
+
+    const plant_z_function = x => x * (1. + height_length * height_length * 1.2);
+    const plant_x_function = x => Math.sin(2 * Math.pow(x, .5)) * width * 0.4;
     const plant_y_function = x => -Math.cos(2.4 * x) * (0.3 + 2.5 * height_length);
-    const normal_function = x => 2.4 * Math.sin(2.4 * x) * (0.3 + 2.5 * height_length)
+    const dy_function = x => 2.4 * Math.sin(2.4 * x) * (0.3 + 2.5 * height_length)
+    const dz_function = x => (1. + height_length * 1.2);
 
     const vertices = [];
     const normals = [];
@@ -188,13 +192,14 @@ const spawn_leaf = (height) => {
         const plant_height = plant_z_function(i * step);
         const plant_width = plant_x_function(i * step);
         const plant_y = plant_y_function(i * step);
-        const normal = normal_function(i * step);
+        const dy = dy_function(i * step);
+        const dz = dz_function(i * step);
 
         const right = [plant_width, plant_y, plant_height];
         const left = [-plant_width, plant_y, plant_height];
 
         vertices.push(left, right);
-        normals.push(normal, normal);
+        normals.push([0, dz, -dy], [0, dz, -dy]);
     }
 
     vertices[vertices.length - 2][0] = 0;
@@ -211,11 +216,59 @@ const spawn_leaf = (height) => {
     return { faces, vertices, normals };
 }
 
-export function spawn_plant_for_tile(planet, tile, height, rand) {
-    const plant_rand = rand(0, Math.ceil(vec3.squaredLength(height) * 2500));
-    if (plant_rand) {
-        return;
-    }
+function spawn_rock_for_tile(planet, tile, height, rand) {
+    spawn_mesh_on_planet(planet, tile, {
+        name: 'rocksA_forest.obj',
+        frag: 'unshaded.frag.glsl',
+        vert: 'unshaded.vert.glsl',
+        scale: 1.5,
+        color: vec3.fromValues(90 / 255.,77/255,65/255),
+    })
+}
+
+
+function spawn_small_plant_for_tile(planet, tile, height, rand) {
+    spawn_mesh_on_planet(planet, tile, {
+        name: 'cactus.obj',
+        frag: 'unshaded.frag.glsl',
+        vert: 'unshaded.vert.glsl',
+        scale: 2.5,
+        color: vec3.fromValues(0 / 255.,255/255,65/255),
+    })
+}
+
+function spawn_cactus_for_tile(planet, tile, height, rand) {
+    spawn_mesh_on_planet(planet, tile, {
+        name: 'tree_desert.obj',
+        frag: 'unshaded.frag.glsl',
+        vert: 'unshaded.vert.glsl',
+        scale: 1.5,
+        color: vec3.fromValues(0 / 255.,255/255,65/255),
+    })
+}
+
+function spawn_tree_for_tile(planet, tile, height, rand) {
+    spawn_mesh_on_planet(planet, tile, {
+        name: 'tree_forest.obj',
+        frag: 'unshaded.frag.glsl',
+        vert: 'unshaded.vert.glsl',
+        scale: 1.5,
+        color: vec3.fromValues(20 / 255.,51/255,6/255),
+    })
+}
+
+
+function spawn_mountain_for_tile(planet, tile, height, rand) {
+    spawn_mesh_on_planet(planet, tile, {
+        name: 'mountain.obj',
+        frag: 'unshaded.frag.glsl',
+        vert: 'unshaded.vert.glsl',
+        scale: 1.5,
+        color: vec3.fromValues(108 / 255, 112 / 255, 115 / 255),
+    })
+}
+
+function spawn_plant_for_tile(planet, tile, height, rand) {
 
     const leafMesh0 = spawn_leaf(height);
     const leafMesh1 = rotate_leaf_90_deg(leafMesh0, leafMesh0.vertices.length)
@@ -240,10 +293,44 @@ export function spawn_plant_for_tile(planet, tile, height, rand) {
 
     spawn_mesh_on_planet(planet, tile, {
         ...mesh,
-        frag: 'unshaded.frag.glsl',
-        vert: 'unshaded.vert.glsl',
-        scale: 0.7,
+        frag: 'plant.frag.glsl',
+        vert: 'plant.vert.glsl',
+        scale: 0.5,
     });
+}
+
+function spawn_with_prob(prob, rand, spawn_func, ...args) {
+    const spawn = rand(0, 1000) / 1000 < prob;
+    if (spawn) {
+        spawn_func(...args);
+    }
+    return spawn;
+}
+
+function spawn_prop_for_tile(planet, tile, height_vec, rand) {
+    const height = vec3.length(height_vec);
+    const scaled_height = height / planet.size * 10;
+
+    const spawn_args = [planet, tile, height_vec, rand];
+
+    // near the water
+    if (scaled_height < 0.3) {
+        if (spawn_with_prob(0.08, rand, spawn_plant_for_tile, ...spawn_args)) return;
+        if (spawn_with_prob(0.07, rand, spawn_small_plant_for_tile, ...spawn_args)) return;
+    }
+
+    else if (scaled_height < 0.5) {
+        if (spawn_with_prob(0.07, rand, spawn_rock_for_tile, ...spawn_args)) return;
+        if (spawn_with_prob(0.10, rand, spawn_tree_for_tile, ...spawn_args)) return;
+    }
+
+    else if (scaled_height < 0.87) {
+        if (spawn_with_prob(0.07, rand, spawn_rock_for_tile, ...spawn_args)) return;
+        if (spawn_with_prob(0.05, rand, spawn_cactus_for_tile, ...spawn_args)) return;
+    }
+    else {
+        // if (spawn_with_prob(0.04, rand, spawn_mountain_for_tile, ...spawn_args)) return;
+    }
 }
 
 export function generate_planet_mesh(planet) {
@@ -337,7 +424,7 @@ export function generate_planet_mesh(planet) {
         }
 
         if (!is_moon)
-            spawn_plant_for_tile(planet, centerPoint, additionalHeight, rand);
+            spawn_prop_for_tile(planet, centerPoint, additionalHeight, rand);
 
         // Borders
         for (const boundary of tile.boundary) {
@@ -548,6 +635,8 @@ export class SysRenderPlanetsUnshaded {
             mat_model_view: regl.prop('mat_model_view'),
             distance_from_sun: regl.prop('distance_from_sun'),
             is_moon: regl.prop('mesh.is_moon'),
+            mat_projection: regl.prop('mat_projection'),
+            with_deformation: regl.prop("with_deformation"),
         }, new Uint8Array(MAX_PLANET_RAY_COUNT).reduce((acc, val, index) => {
             acc['planet_sizes['+index+']'] = regl.prop('planet_sizes['+index+']');
             acc['planet_locations['+index+']'] = regl.prop('planet_locations['+index+']');
@@ -612,7 +701,9 @@ export class SysRenderPlanetsUnshaded {
                     mat_normals: actor.mat_normals_to_view,
                     planet_sizes: planets_info.map(x => vec4.fromValues(x.size ?? 0., 0, 0, 0)),
                     planet_locations: planets_info.map(x => x.location),
-                    distance_from_sun: actor.orbit_radius
+                    distance_from_sun: actor.orbit_radius,
+                    with_deformation: planets_info.with_deformation,
+                    mat_projection: mat_projection,
                 });
             }
         }

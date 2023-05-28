@@ -93,7 +93,7 @@ export async function icg_mesh_load_obj(regl_instance, url, material_colors_by_n
 	const mesh_with_our_names = {
 		vertex_positions: regl_instance.buffer(mesh_loaded_obj.vertices),
 		vertex_tex_coords: regl_instance.buffer(mesh_loaded_obj.textures),
-		vertex_normals: regl_instance.buffer(mesh_loaded_obj.vertexNormals),
+		vertex_normals: mesh_loaded_obj.vertexNormals,
 		
 		// https://github.com/regl-project/regl/blob/master/API.md#elements
 		faces: regl_instance.elements({data: faces_from_materials, type: 'uint16'}),

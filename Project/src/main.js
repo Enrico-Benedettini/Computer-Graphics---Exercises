@@ -41,8 +41,12 @@ async function load_resources(regl) {
 
     const meshes_to_load = [
         "rocksA_forest.obj",
-        
-    ]
+        "cactus.obj",
+        "tree_desert.obj",
+        "tree_forest.obj",        
+        "mountain.obj",        
+    ];
+
     for (const mesh_name of meshes_to_load) {
         resource_promises[mesh_name] = icg_mesh_load_obj(regl, `./meshes/${mesh_name}`)
     }
@@ -62,6 +66,7 @@ async function load_resources(regl) {
         'sun.frag.glsl',
         'planet.frag.glsl', 'planet.vert.glsl',
         'billboard.vert.glsl', 'billboard_sunglow.frag.glsl',
+        'plant.vert.glsl', 'plant.frag.glsl',
     ]
     for (const shader_name of shaders_to_load) {
         resource_promises[shader_name] = load_text(`./src/shaders/${shader_name}`)
@@ -302,6 +307,21 @@ async function main() {
         }
     })
 
+    const deformation = document.getElementById('def_state');
+
+    let with_deformation = false;
+    const toggleDeformation = () => {
+        with_deformation = !with_deformation;
+    
+        const color = with_deformation ? '#22ff44' : 'red';
+        deformation.style.borderColor = color;
+        deformation.style.color = color;
+        deformation.innerText = with_deformation ? "ON" : "OFF";
+    };
+
+    deformation.addEventListener('click', toggleDeformation);
+    register_keyboard_action('d', toggleDeformation)
+
     /*---------------------------------------------------------------
         Render loop
     ---------------------------------------------------------------*/
@@ -364,10 +384,13 @@ async function main() {
         regl.clear({ color: [0.05, 0.05, 0.1, 1] });
         
         const planets_info = compute_transforms(frame_info, scene_info)
+        planets_info.with_deformation = with_deformation;
 
         sys_render_unshaded.render(frame_info, scene_info, planets_info);
 
-        sys_render_mesh.render(frame_info, scene_info, planets_info);
+        if (!with_deformation) {
+            sys_render_mesh.render(frame_info, scene_info, planets_info);
+        }
 
         if (grid_on) {
             // sys_render_grid.render(frame_info, scene_info)

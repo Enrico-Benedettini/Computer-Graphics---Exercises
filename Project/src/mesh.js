@@ -5,6 +5,8 @@ const mesh_scale = mat4.fromScaling(mat4.create(), [0.2, 0.2, 0.2]);
 
 const MAX_PLANET_RAY_COUNT = 20;
 
+const default_color = vec3.fromValues(1., 0., 0.);
+
 export class SysRenderMesh {
 
 	constructor(regl, resources) {
@@ -20,6 +22,8 @@ export class SysRenderMesh {
             mat_normals: regl.prop('mat_normals'),
             light_position_cam: regl.prop('light_position_cam'),
             mat_model_view: regl.prop('mat_model_view'),
+            tile_center: regl.prop('tile_center'),
+            color: regl.prop('color'),
         }, new Uint8Array(MAX_PLANET_RAY_COUNT).reduce((acc, val, index) => {
             acc['planet_sizes['+index+']'] = regl.prop('planet_sizes['+index+']');
             acc['planet_locations['+index+']'] = regl.prop('planet_locations['+index+']');
@@ -107,6 +111,8 @@ export class SysRenderMesh {
                 light_position_cam,
                 planet_sizes: planets_info.map(x => vec4.fromValues(x.size ?? 0., 0, 0, 0)),
                 planet_locations: planets_info.map(x => x.location),
+                tile_center: mesh.tile_center,
+                color: mesh.color ?? default_color,
 			})
         }
         
