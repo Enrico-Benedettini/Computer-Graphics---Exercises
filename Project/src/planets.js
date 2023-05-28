@@ -268,6 +268,16 @@ function spawn_mountain_for_tile(planet, tile, height, rand) {
     })
 }
 
+function spawn_statue(name, scale, planet, tile, height, rand) {
+    spawn_mesh_on_planet(planet, tile, {
+        name: `statue_${name}.obj`,
+        frag: 'unshaded.frag.glsl',
+        vert: 'unshaded.vert.glsl',
+        scale: scale,
+        color: vec3.fromValues(88 / 255, 88 / 255, 88 / 255),
+    })
+}
+
 function spawn_plant_for_tile(planet, tile, height, rand) {
 
     const leafMesh0 = spawn_leaf(height);
@@ -299,6 +309,16 @@ function spawn_plant_for_tile(planet, tile, height, rand) {
     });
 }
 
+function spawn_obj(name, scale, color, planet, tile, height, rand) {
+    spawn_mesh_on_planet(planet, tile, {
+        name: `${name}.obj`,
+        frag: 'unshaded.frag.glsl',
+        vert: 'unshaded.vert.glsl',
+        scale: scale,
+        color: vec3.fromValues(color[0], color[1], color[2]),
+    })
+}
+
 function spawn_with_prob(prob, rand, spawn_func, ...args) {
     const spawn = rand(0, 1000) / 1000 < prob;
     if (spawn) {
@@ -322,6 +342,7 @@ function spawn_prop_for_tile(planet, tile, height_vec, rand) {
     else if (scaled_height < 0.5) {
         if (spawn_with_prob(0.07, rand, spawn_rock_for_tile, ...spawn_args)) return;
         if (spawn_with_prob(0.10, rand, spawn_tree_for_tile, ...spawn_args)) return;
+        if (spawn_with_prob(0.10, rand, spawn_obj, 'tent_smallOpen', 2.5, [1., 0.2, 0.3], ...spawn_args)) return;
     }
 
     else if (scaled_height < 0.87) {
@@ -329,7 +350,9 @@ function spawn_prop_for_tile(planet, tile, height_vec, rand) {
         if (spawn_with_prob(0.05, rand, spawn_cactus_for_tile, ...spawn_args)) return;
     }
     else {
-        // if (spawn_with_prob(0.04, rand, spawn_mountain_for_tile, ...spawn_args)) return;
+        if (spawn_with_prob(0.007, rand, spawn_statue, 'obelisk', 6.5, ...spawn_args)) return;
+        if (spawn_with_prob(0.01, rand, spawn_statue, 'head', 3.5, ...spawn_args)) return;
+        if (spawn_with_prob(0.01, rand, spawn_statue, 'column', 6.5, ...spawn_args)) return;
     }
 }
 

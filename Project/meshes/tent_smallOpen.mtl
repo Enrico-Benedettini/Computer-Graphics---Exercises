@@ -1,0 +1,18 @@
+newmtl tent_smallOpen:colorRed
+illum 4
+Kd 0.88 0.29 0.31
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl tent_smallOpen:colorRedDark
+illum 4
+Kd 0.76 0.21 0.23
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl tent_smallOpen:wood
+illum 4
+Kd 1.00 0.56 0.38
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
