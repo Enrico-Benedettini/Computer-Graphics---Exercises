@@ -60,10 +60,10 @@ void main() {
             }
             // We are > 2x bigger
             else if (size_fact > 2.) {
-                gravity = planet_sizes[i].x / pow(dist + 1., 0.7);
+                gravity = planet_sizes[i].x / pow(0.2 * dist + 4., 0.7);
             }
             else {
-                gravity = planet_sizes[i].x / sqrt(dist) / sqrt(dist);;
+                gravity = planet_sizes[i].x / sqrt(dist) / sqrt(dist) * 4.;
             }
 
             if (length(planet_center - planet_locations[i].xyz) > 0.1) 

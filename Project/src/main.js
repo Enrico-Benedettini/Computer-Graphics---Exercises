@@ -48,7 +48,9 @@ async function load_resources(regl) {
         "statue_obelisk.obj",   
         "statue_head.obj",   
         "statue_column.obj",
-        "tent_smallOpen.obj"
+        "tent_smallOpen.obj",
+        "rocket.obj",
+        "rover.obj"
     ];
 
     for (const mesh_name of meshes_to_load) {

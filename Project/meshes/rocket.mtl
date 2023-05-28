@@ -1,0 +1,84 @@
+newmtl rocket_baseA:metal
+illum 4
+Kd 0.84 0.87 0.91
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_baseA:metalDark
+illum 4
+Kd 0.68 0.71 0.77
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_baseA:metalRed
+illum 4
+Kd 1.00 0.63 0.20
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_finsA:dark
+illum 4
+Kd 0.27 0.30 0.34
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_finsA:metal
+illum 4
+Kd 0.84 0.87 0.91
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_finsA:metalDark
+illum 4
+Kd 0.68 0.71 0.77
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_fuelA:metalDark
+illum 4
+Kd 0.68 0.71 0.77
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_fuelA:metalRed
+illum 4
+Kd 1.00 0.63 0.20
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_sidesA:dark
+illum 4
+Kd 0.27 0.30 0.34
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_sidesA:metal
+illum 4
+Kd 0.84 0.87 0.91
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_sidesA:metalDark
+illum 4
+Kd 0.68 0.71 0.77
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_topB:_defaultMat
+illum 4
+Kd 1.00 1.00 1.00
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_topB:metal
+illum 4
+Kd 0.84 0.87 0.91
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl rocket_topB:metalRed
+illum 4
+Kd 1.00 0.63 0.20
+Ka 0.40 0.40 0.40
+Tf 1.00 1.00 1.00
+Ni 1.00
