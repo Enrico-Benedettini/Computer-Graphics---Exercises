@@ -342,8 +342,8 @@ function spawn_prop_for_moon_tile(planet, tile, height_vec, rand) {
         
     }
     else {
-        if (spawn_with_prob(0.01, rand, spawn_obj, 'rover', 4., [0.3, 0.3, 0.3], ...spawn_args)) return;
-        if (spawn_with_prob(0.01, rand, spawn_obj, 'rocket', 1., [0.4, 0.4, 0.4], ...spawn_args)) return;
+        if (spawn_with_prob(0.01, rand, spawn_obj, 'rover', 4., [0.2, 0.2, 0.2], ...spawn_args)) return;
+        if (spawn_with_prob(0.01, rand, spawn_obj, 'rocket', 1., [0.3, 0.3, 0.3], ...spawn_args)) return;
     }
 }
 
