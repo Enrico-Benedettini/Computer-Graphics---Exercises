@@ -69,7 +69,7 @@ export class CanvasVideoRecording {
 			instead, they will only be captured when the returned track's requestFrame() method is called.
 		*/
 
-		const video_format = "video/webm";
+		const video_format = "video/webm;codecs=vp8";
 
 		this.num_frames = 0;
 		this.video_data_fragments = [];

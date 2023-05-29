@@ -366,7 +366,7 @@ async function main() {
     
     const video = new CanvasVideoRecording({
         canvas: canvas_elem,
-        videoBitsPerSecond: 60*1024*1024, // tweak that if the quality is bad 
+        videoBitsPerSecond: 1024 * 1024 * 1024 * 1024, // tweak that if the quality is bad 
         // https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder/MediaRecorder
     });
 
@@ -376,20 +376,27 @@ async function main() {
     ---------------------------------------------------------------*/
     let recording_steps = undefined;
     function setSimSpeed(newSpeed) {
-        time_multiplication = newSpeed;
+        if (video.is_recording()) {
+            time_multiplication = newSpeed / 60;
+        }
+        else {
+            time_multiplication = newSpeed / 4;
+        }
     }
     
 	function video_start_stop() {
 		if(video.is_recording()) {
 			video.stop();
 		} else {
-            setSimSpeed(1 / 60.);
 			video.start();
+            setSimSpeed(1);
             recording_steps();
 		}
 	};
 
 	register_keyboard_action('r', video_start_stop);
+
+    register_keyboard_action('t', () => recording_steps());
 
     const wait = async time => await new Promise(r => setTimeout(r, time));
     
@@ -397,21 +404,59 @@ async function main() {
         VIDEO STEPS
     ---------------------------------------------------------------*/
     recording_steps = async function recording_steps() {
-        setSimSpeed(1 / 60.);
+        // Title
+        setSimSpeed(3);
         targetPlanet('sun');
-        await wait(5000);
-
+        await wait(11000);
+        
+        // Generated planets
+        setSimSpeed(3);
         targetPlanet('planet4', { zoom: 2.5 });
-        await wait(4000);
+        await wait(8000);
 
-        targetPlanet('planet4_moon2', { zoom: .5, cam_angle_y: 0 });
+        setSimSpeed(4);
+        targetPlanet('planet3', { zoom: 2.5, cam_angle_z: 1.5, cam_angle_y: -23.2, simTime: 56.54 });
         await wait(6000);
 
-        targetPlanet('planet4', { zoom: 1., cam_angle_y: -1.7, cam_angle_z: 117.5 , simTime: 105.00 });
-        // ... 
-        // setSimSpeed(1 / 60 * 2);
+        setSimSpeed(-3);
+        targetPlanet('planet2', { zoom: 1., cam_angle_z: 136.6, cam_angle_y: 10.6, simTime: 62.04 });
+        await wait(6000);
         
+        setSimSpeed(4);
+        targetPlanet('planet1', { zoom: 1., cam_angle_z: 125., cam_angle_y: -22.0, simTime: 57.35 });
+        await wait(8000);
+
+        // Raytracing
+        setSimSpeed(-0.8);
+        targetPlanet('planet4_moon0', { zoom: .5, cam_angle_y: 16.0, cam_angle_z: 35, simTime: 59 });
+        await wait(11000);
+        
+        setSimSpeed(-2.);
+        targetPlanet('planet1', { zoom: 1.5, cam_angle_y: -17.1, cam_angle_z: -56.4, simTime: 25.59 });
+        await wait(11000);
+      
+        // Plant generation
+        setSimSpeed(0.5);
+        targetPlanet('planet4', { zoom: 1., cam_angle_y: 7, cam_angle_z: 121.2, simTime: 52.39 });
+        await wait(11000);
+
+        // Global illumination
+        setSimSpeed(0.4);
+        targetPlanet('planet4', { zoom: 1., cam_angle_y: -19.6, cam_angle_z: 122.2, simTime: 55.2 });
+        await wait(11000);
+        
+        // Planet deformation
+        setSimSpeed(3);
+        with_deformation = true;
+        targetPlanet('planet4', { zoom: 2.5, cam_angle_y: -29, cam_angle_z: -4.8, simTime: 69.04 });
+        await wait(9000);
+        with_deformation = false;
+
     };
+
+    setSimSpeed(2.);
+    targetPlanet('planet1', { zoom: 1.5, cam_angle_y: -17.1, cam_angle_z: -56.4, simTime: 25.59 });
+    
 
     /*---------------------------------------------------------------
         Render loop

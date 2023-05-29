@@ -177,14 +177,14 @@ const rotate_leaf = (mesh, facesCount, alpha, z_func) => {
 }
 
 
-const spawn_leaf = (height) => {
+const spawn_leaf = (height, rand) => {
     const plant_height = 2.48;
 
     const plant_divisions = 10;
 
     const height_length = vec3.length(height);
 
-    const width = Math.random() + 0.1;
+    const width = rand(20, 100) / 100 + 0.15;
 
     const plant_z_function = x => x * (1. + height_length * height_length * 1.2);
     const plant_x_function = x => Math.sin(2 * Math.pow(x, .5)) * width * 0.4;
@@ -290,16 +290,16 @@ function spawn_statue(name, scale, planet, tile, height, rand) {
 
 function spawn_plant_for_tile(planet, tile, height, rand) {
 
-    const leaf_count = rand(3, 8);
+    const leaf_count = rand(3, 10);
 
     const angle = Math.PI * 2 / leaf_count;
 
-    const leaf0 = spawn_leaf(height);
+    const leaf0 = spawn_leaf(height, rand);
 
     const leaves = [leaf0];
 
     for (let i = 1; i < leaf_count; ++i) {
-        const zOffset = (rand(0, 10) - 5) / 10;
+        const zOffset = rand(0, 10) / 30;
         const rotatedLeaf = rotate_leaf(leaves[leaves.length - 1], 
             leaf0.vertices.length, angle, z => z + zOffset);
         leaves.push(rotatedLeaf);
