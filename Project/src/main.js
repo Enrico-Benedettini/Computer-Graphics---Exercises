@@ -11,6 +11,7 @@ import { SystemRenderGrid } from "./icg_grid.js"
 import { create_scene_content, SysOrbitalMovement, SysRenderPlanetsUnshaded, compute_transforms } from "./planets.js"
 import { SysRenderMesh } from "./mesh.js"
 
+import {CanvasVideoRecording} from "./icg_screenshot.js"
 
 
 function get_seed() {
@@ -109,6 +110,9 @@ async function main() {
     })
     // The <canvas> (HTML element for drawing graphics) was created by REGL, lets take a handle to it.
     const canvas_elem = document.getElementsByTagName('canvas')[0]
+
+    canvas_elem.width = 1920;
+    canvas_elem.height = 1080;
 
 
     /*---------------------------------------------------------------
@@ -268,6 +272,16 @@ async function main() {
         }
     }
 
+    function targetPlanet(name, simTime = 0, cam_angle_z = 1.2, cam_angle_y = -0.8, zoom = 6) {
+        set_selected_planet(name)
+        scene_info.sim_time = simTime
+        frame_info.cam_angle_z = cam_angle_z
+        frame_info.cam_angle_y = cam_angle_y
+        frame_info.cam_distance_factor = zoom
+
+        update_cam_transform(frame_info)
+    }
+
     const bind_key_to_planet = (key, planet, zoom = 8.2) => {
         register_keyboard_action(key, () => {
             set_selected_planet(planet)
@@ -348,6 +362,51 @@ async function main() {
         toggleShowProps();
     }
 
+    
+    const video = new CanvasVideoRecording({
+        canvas: canvas_elem,
+        videoBitsPerSecond: 30*1024*1024, // tweak that if the quality is bad 
+        // https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder/MediaRecorder
+    });
+
+    
+    /*---------------------------------------------------------------
+        VIDEO RECORDING
+    ---------------------------------------------------------------*/
+    let recording_steps = undefined;
+    function setSimSpeed(newSpeed) {
+        time_multiplication = newSpeed;
+    }
+    
+	function video_start_stop() {
+		if(video.is_recording()) {
+			video.stop();
+		} else {
+            setSimSpeed(1 / 60.);
+			video.start();
+            recording_steps();
+		}
+	};
+
+	register_keyboard_action('r', video_start_stop);
+
+    async function wait(mili) {
+        return new Promise((complete) => {
+            setTimeout(complete, mili)
+        })
+    }
+    
+    /*---------------------------------------------------------------
+        VIDEO STEPS
+    ---------------------------------------------------------------*/
+    recording_steps = async function recording_steps() {
+        targetPlanet('sun')
+
+        // ... 
+        // setSimSpeed(1 / 60 * 2);
+        // await wait(2000);
+    };
+
     /*---------------------------------------------------------------
         Render loop
     ---------------------------------------------------------------*/
@@ -358,12 +417,14 @@ async function main() {
 
         const { mat_view, mat_projection, mat_turntable, light_position_cam, light_position_world, camera_position } = frame_info
 
+        const frame_time = video.is_recording() ? frame.tick : frame.time;
+
         if (!is_paused) {
-            const dt = frame.time - prev_regl_time;
+            const dt = frame_time - prev_regl_time;
             scene_info.sim_time += dt * time_multiplication;
         }
         frame_info.sim_time = scene_info.sim_time
-        prev_regl_time = frame.time;
+        prev_regl_time = frame_time;
 
 
 
@@ -428,6 +489,9 @@ Hello! Sim time is ${scene_info.sim_time.toFixed(2)} s
 Camera: angle_z ${(frame_info.cam_angle_z / deg_to_rad).toFixed(1)}, angle_y ${(frame_info.cam_angle_y / deg_to_rad).toFixed(1)}, distance ${(frame_info.cam_distance_factor * cam_distance_base).toFixed(1)}
 cam pos ${vec_to_string(camera_position)}
 `;
+        if (video.is_recording()) {
+            video.push_frame();
+        }
     })
 }
 
