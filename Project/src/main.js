@@ -272,7 +272,8 @@ async function main() {
         }
     }
 
-    function targetPlanet(name, simTime = 0, cam_angle_z = 1.2, cam_angle_y = -0.8, zoom = 6) {
+    function targetPlanet(name, params) {
+        const { simTime = 0, cam_angle_z = 1.2, cam_angle_y = -0.8, zoom = 6} = {...params};
         set_selected_planet(name)
         scene_info.sim_time = simTime
         frame_info.cam_angle_z = cam_angle_z
@@ -390,21 +391,20 @@ async function main() {
 
 	register_keyboard_action('r', video_start_stop);
 
-    async function wait(mili) {
-        return new Promise((complete) => {
-            setTimeout(complete, mili)
-        })
-    }
+    const wait = async time => await new Promise(r => setTimeout(r, time));
     
     /*---------------------------------------------------------------
         VIDEO STEPS
     ---------------------------------------------------------------*/
     recording_steps = async function recording_steps() {
-        targetPlanet('sun')
-
+        targetPlanet('sun');
+        await wait(2000);
+        targetPlanet('planet4', { zoom: 2.5 });
+        await wait(4000);
+        targetPlanet('planet4_moon2', { zoom: .5, cam_angle_y: 0 });
         // ... 
         // setSimSpeed(1 / 60 * 2);
-        // await wait(2000);
+        
     };
 
     /*---------------------------------------------------------------
