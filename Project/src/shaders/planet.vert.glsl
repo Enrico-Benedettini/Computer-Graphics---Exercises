@@ -55,15 +55,15 @@ void main() {
             float size_fact = planet_size / planet_sizes[i].x;
             float gravity = 0.;
             // We are at least 2x smaller than the planet.
-            if (size_fact < .5) {
-                gravity = planet_sizes[i].x / dist / dist;
+            if (size_fact < .5 && dist < 40.) {
+                gravity = planet_sizes[i].x / dist;
             }
-            // We are > 2x bigger
-            else if (size_fact > 2.) {
-                gravity = planet_sizes[i].x / pow(0.2 * dist + 4., 0.7);
+            // We are > 2x bigger and it's close
+            else if (size_fact > 2. && dist < 40.) {
+                gravity = planet_sizes[i].x * dist / 2. / pow(3.5, 0.7);
             }
             else {
-                gravity = planet_sizes[i].x / sqrt(dist) / sqrt(dist) * 4.;
+                gravity = planet_sizes[i].x / dist * 4.;
             }
 
             if (length(planet_center - planet_locations[i].xyz) > 0.1) 

@@ -75,7 +75,6 @@ export class CanvasVideoRecording {
 		this.video_data_fragments = [];
 
 		this.stream = canvas.captureStream(0);
-        console.log("Stream: ", this.stream);
 
 		this.recorder = new MediaRecorder(this.stream, {
 			mimeType: video_format,

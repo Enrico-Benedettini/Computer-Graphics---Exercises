@@ -273,11 +273,11 @@ async function main() {
     }
 
     function targetPlanet(name, params) {
-        const { simTime = 0, cam_angle_z = 1.2, cam_angle_y = -0.8, zoom = 6} = {...params};
+        const { simTime = 0, cam_angle_z = 1.2 * 180 / Math.PI, cam_angle_y = -0.8 * 180 / Math.PI, zoom = 6} = {...params};
         set_selected_planet(name)
         scene_info.sim_time = simTime
-        frame_info.cam_angle_z = cam_angle_z
-        frame_info.cam_angle_y = cam_angle_y
+        frame_info.cam_angle_z = cam_angle_z / 180 * Math.PI
+        frame_info.cam_angle_y = cam_angle_y / 180 * Math.PI
         frame_info.cam_distance_factor = zoom
 
         update_cam_transform(frame_info)
@@ -366,7 +366,7 @@ async function main() {
     
     const video = new CanvasVideoRecording({
         canvas: canvas_elem,
-        videoBitsPerSecond: 30*1024*1024, // tweak that if the quality is bad 
+        videoBitsPerSecond: 60*1024*1024, // tweak that if the quality is bad 
         // https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder/MediaRecorder
     });
 
@@ -397,11 +397,17 @@ async function main() {
         VIDEO STEPS
     ---------------------------------------------------------------*/
     recording_steps = async function recording_steps() {
+        setSimSpeed(1 / 60.);
         targetPlanet('sun');
-        await wait(2000);
+        await wait(5000);
+
         targetPlanet('planet4', { zoom: 2.5 });
         await wait(4000);
+
         targetPlanet('planet4_moon2', { zoom: .5, cam_angle_y: 0 });
+        await wait(6000);
+
+        targetPlanet('planet4', { zoom: 1., cam_angle_y: -1.7, cam_angle_z: 117.5 , simTime: 105.00 });
         // ... 
         // setSimSpeed(1 / 60 * 2);
         
