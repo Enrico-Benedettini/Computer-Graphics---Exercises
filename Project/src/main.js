@@ -409,6 +409,8 @@ async function main() {
         targetPlanet('sun');
         await wait(11000);
         
+return;
+
         // Generated planets
         setSimSpeed(3);
         targetPlanet('planet4', { zoom: 2.5 });
@@ -454,8 +456,8 @@ async function main() {
 
     };
 
-    setSimSpeed(2.);
-    targetPlanet('planet1', { zoom: 1.5, cam_angle_y: -17.1, cam_angle_z: -56.4, simTime: 25.59 });
+    setSimSpeed(0);
+    targetPlanet('planet5', { zoom: 1, cam_angle_z: -73.6, cam_angle_y: 86.8, simTime: 0 });
     
 
     /*---------------------------------------------------------------
